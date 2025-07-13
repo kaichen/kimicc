@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { spawn } = require('child_process');
-const { checkClaudeInPath, installClaudeCode, getApiKey } = require('../lib/utils');
+const { checkClaudeInPath, installClaudeCode, getApiKey, updateClaudeSettings } = require('../lib/utils');
 
 async function main() {
   console.log('🚀 Starting kimicc - Claude Code with Kimi K2...\n');
@@ -14,6 +14,9 @@ async function main() {
       process.exit(1);
     }
   }
+
+  // Update Claude settings
+  updateClaudeSettings();
 
   // Get API key
   const apiKey = await getApiKey();
