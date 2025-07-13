@@ -2,9 +2,10 @@
 
 const { spawn } = require('child_process');
 const { checkClaudeInPath, installClaudeCode, getApiKey, updateClaudeSettings } = require('../lib/utils');
+const { version } = require('../package.json');
 
 async function main() {
-  console.log('🚀 Starting kimicc - Claude Code with Kimi K2...\n');
+  console.log(`🚀 Starting kimicc v${version} - Claude Code with Kimi K2...\n`);
 
   // Check if claude is installed
   if (!checkClaudeInPath()) {
