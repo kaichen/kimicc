@@ -1,6 +1,6 @@
 {
   "name": "kimicc",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Run Claude Code with Kimi K2 API - 使用 Kimi K2 运行 Claude Code",
   "main": "index.js",
   "bin": {
