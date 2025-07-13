@@ -1,0 +1,28 @@
+{
+  "name": "kimicc",
+  "version": "1.0.0",
+  "description": "Run Claude Code with Kimi K2 API - 使用 Kimi K2 运行 Claude Code",
+  "main": "index.js",
+  "bin": {
+    "kimicc": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cli",
+    "claude",
+    "claude-code",
+    "kimi",
+    "ai",
+    "llm"
+  ],
+  "author": "Kai<kai@thekaiway.com>",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
