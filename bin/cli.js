@@ -1,10 +1,57 @@
 #!/usr/bin/env node
 
 const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const readline = require('readline');
 const { checkClaudeInPath, installClaudeCode, getApiKey, updateClaudeSettings } = require('../lib/utils');
 const { version } = require('../package.json');
 
+const CONFIG_FILE = path.join(os.homedir(), '.kimicc.json');
+
+async function handleResetCommand() {
+  console.log('🗑️  Resetting kimicc configuration...\n');
+  
+  if (!fs.existsSync(CONFIG_FILE)) {
+    console.log('No configuration file found at ~/.kimicc.json');
+    return;
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    rl.question('Are you sure you want to delete the configuration file? (y/N): ', (answer) => {
+      rl.close();
+      
+      if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
+        try {
+          fs.unlinkSync(CONFIG_FILE);
+          console.log('✅ Configuration file deleted successfully.');
+        } catch (error) {
+          console.error('❌ Failed to delete configuration file:', error.message);
+        }
+      } else {
+        console.log('Reset cancelled.');
+      }
+      resolve();
+    });
+  });
+}
+
 async function main() {
+  // Get command line arguments (remove 'node' and script path)
+  const args = process.argv.slice(2);
+  
+  // Handle reset subcommand
+  if (args[0] === 'reset') {
+    await handleResetCommand();
+    return;
+  }
+
   console.log(`🚀 Starting kimicc v${version} - Claude Code with Kimi K2...\n`);
 
   // Check if claude is installed
@@ -32,9 +79,6 @@ async function main() {
     ANTHROPIC_API_KEY: apiKey,
     ANTHROPIC_BASE_URL: 'https://api.moonshot.cn/anthropic'
   };
-
-  // Get command line arguments (remove 'node' and script path)
-  const args = process.argv.slice(2);
 
   // Spawn claude process
   console.log('Launching Claude Code...\n');
