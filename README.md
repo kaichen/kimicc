@@ -2,7 +2,7 @@
 
 一步命令 `npx kimicc` 使用 Kimi K2 运行 Claude Code。
 
-或者 `npm install -g kimicc`
+或者 `npm install -g kimicc` 安装 KimiCC。
 
 这是一个轻量的 nodejs 的 npm 包，在启动时设置好环境变量，让 Claude Code 调用 Kimi K2 模型。
 
@@ -13,6 +13,12 @@
 3. Kimi K2 是当前 Agentic 特性最高的开源模型，足以驾驭 Claude Code 这个系统；
 4. Kimi K2 API 价格仅有 Claude 的 1/5 到 1/6，支持多种支付方式；
 5. 让更多人体验最先进的开发工具，让厂商卷起来。
+
+## 这个工具包做了什么？
+
+这个工具做一些微笑的工作，帮你节省时间去处理配置的工作。底层是在启动 claude 之前设定好 API Key 和 Base URL 环境变量参数。
+
+对比其他教程让你配置文件，或者在启动时加长长的参数，使用本工具会节省你宝贵的时间精力。
 
 ## 使用方式
 
