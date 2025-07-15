@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const readline = require('readline');
-const { checkClaudeInPath, installClaudeCode, getApiKey, getBaseUrl, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables } = require('../lib/utils');
+const { checkClaudeInPath, installClaudeCode, getApiKey, getBaseUrl, getModel, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables } = require('../lib/utils');
 const { version } = require('../package.json');
 
 const CONFIG_FILE = path.join(os.homedir(), '.kimicc.json');
@@ -115,22 +115,28 @@ async function handleProfileCommand() {
       console.log(`  ${profile.slug}${marker}`);
       console.log(`    URL: ${profile.url}`);
       console.log(`    Key: ${profile.key.substring(0, 8)}...`);
+      if (profile.model) {
+        console.log(`    Model: ${profile.model}`);
+      }
       console.log();
     });
     return;
   }
   
   if (profileArgs[0] === 'add') {
-    // profile add [--slug slug] url apikey
+    // profile add [--slug slug] [--model model] [--default] url apikey
     let slug = null;
     let url = null;
     let apiKey = null;
+    let model = null;
     let setAsDefault = false;
     
     // Parse arguments
     for (let i = 1; i < profileArgs.length; i++) {
       if (profileArgs[i] === '--slug' && i + 1 < profileArgs.length) {
         slug = profileArgs[++i];
+      } else if (profileArgs[i] === '--model' && i + 1 < profileArgs.length) {
+        model = profileArgs[++i];
       } else if (profileArgs[i] === '--default') {
         setAsDefault = true;
       } else if (!url) {
@@ -142,7 +148,7 @@ async function handleProfileCommand() {
     
     if (!url || !apiKey) {
       console.error('❌ Missing required arguments: URL and API key');
-      console.log('💡 Usage: kimicc profile add [--slug SLUG] [--default] URL API_KEY');
+      console.log('💡 Usage: kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL API_KEY');
       process.exit(1);
     }
     
@@ -172,11 +178,14 @@ async function handleProfileCommand() {
     }
     
     const { addProfile } = require('../lib/utils');
-    addProfile(slug, url, apiKey, setAsDefault);
+    addProfile(slug, url, apiKey, setAsDefault, model);
     
     console.log(`✅ Profile '${slug}' added successfully.`);
     if (setAsDefault) {
       console.log(`   Set as default profile.`);
+    }
+    if (model) {
+      console.log(`   Model: ${model}`);
     }
     return;
   }
@@ -377,7 +386,7 @@ async function main() {
   // Update Claude settings
   updateClaudeSettings();
 
-  // Get API key and base URL based on profile
+  // Get API key, base URL, and model based on profile
   const apiKey = await getApiKey(profileName);
   if (!apiKey) {
     console.error('No API key provided. Exiting...');
@@ -385,6 +394,7 @@ async function main() {
   }
   
   const baseUrl = getBaseUrl(profileName);
+  const model = getModel(profileName);
 
   // Set up environment variables
   const env = {
@@ -392,6 +402,12 @@ async function main() {
     ANTHROPIC_API_KEY: apiKey,
     ANTHROPIC_BASE_URL: baseUrl
   };
+
+  // Set model environment variables if specified in profile
+  if (model) {
+    env.ANTHROPIC_MODEL = model;
+    env.ANTHROPIC_SMALL_FAST_MODEL = model;
+  }
 
   // Display profile info if using one
   if (profileName) {
