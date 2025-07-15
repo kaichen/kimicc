@@ -30,5 +30,10 @@ source ~/.bashrc
 - profile list ：列出所有 profile。
 - profile add --slug $slug $url $apikey ：添加新的profile，自动将 url 中的 hostname，如 123.example.com => examplecom 作为 slug，也可指定 slug。
 - profile del $slug ：删除某个 profile，需要用户输入作为确认。
+- profile del -i ：交互式删除，列出 profile 与序号，用户输入一个或多个数字（逗号隔开），按照选择删除。
+
+profile add 时，支持添加 --model 可选选项，添加到 profile 配置中，以 model 为 key 存储；如果 profile 设定了 model，则将 ANTHROPIC_MODEL 与 ANTHROPIC_SMALL_FAST_MODEL 环境变量设定为 profile 的 model。
 
 启动时添加 --profile 选择不同的 profile，选择后读取配置中的 url 与 key 设定到 claude 启动的进程环境变量中。
+
+向前兼容，执行 profile add 时，假如从未添加过 profile，并且设置过 apiKey，则自动把默认的 ANTHROPIC_BASE_URL=https://api.moonshot.cn/anthropic/ 以及 apiKey 迁移到 profile 形式，并设定为 default。

@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const readline = require('readline');
-const { checkClaudeInPath, installClaudeCode, getApiKey, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables } = require('../lib/utils');
+const { checkClaudeInPath, installClaudeCode, getApiKey, getBaseUrl, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables } = require('../lib/utils');
 const { version } = require('../package.json');
 
 const CONFIG_FILE = path.join(os.homedir(), '.kimicc.json');
@@ -95,6 +95,245 @@ async function handleInjectCommand() {
   }
 }
 
+async function handleProfileCommand() {
+  const args = process.argv.slice(2);
+  const profileArgs = args.slice(1); // Skip the 'profile' command itself
+  
+  if (profileArgs.length === 0 || profileArgs[0] === 'list') {
+    // profile list
+    const profiles = require('../lib/utils').listProfiles();
+    
+    if (profiles.length === 0) {
+      console.log('📋 No profiles found.');
+      console.log('💡 Use "kimicc profile add --slug example https://api.example.com YOUR_API_KEY" to add a profile.');
+      return;
+    }
+    
+    console.log('📋 Available profiles:\n');
+    profiles.forEach(profile => {
+      const marker = profile.isDefault ? ' (default)' : '';
+      console.log(`  ${profile.slug}${marker}`);
+      console.log(`    URL: ${profile.url}`);
+      console.log(`    Key: ${profile.key.substring(0, 8)}...`);
+      console.log();
+    });
+    return;
+  }
+  
+  if (profileArgs[0] === 'add') {
+    // profile add [--slug slug] url apikey
+    let slug = null;
+    let url = null;
+    let apiKey = null;
+    let setAsDefault = false;
+    
+    // Parse arguments
+    for (let i = 1; i < profileArgs.length; i++) {
+      if (profileArgs[i] === '--slug' && i + 1 < profileArgs.length) {
+        slug = profileArgs[++i];
+      } else if (profileArgs[i] === '--default') {
+        setAsDefault = true;
+      } else if (!url) {
+        url = profileArgs[i];
+      } else if (!apiKey) {
+        apiKey = profileArgs[i];
+      }
+    }
+    
+    if (!url || !apiKey) {
+      console.error('❌ Missing required arguments: URL and API key');
+      console.log('💡 Usage: kimicc profile add [--slug SLUG] [--default] URL API_KEY');
+      process.exit(1);
+    }
+    
+    // Validate URL
+    try {
+      new URL(url);
+    } catch (error) {
+      console.error('❌ Invalid URL provided');
+      process.exit(1);
+    }
+    
+    // Generate slug if not provided
+    if (!slug) {
+      slug = require('../lib/utils').generateSlugFromUrl(url);
+      if (!slug) {
+        console.error('❌ Could not generate slug from URL. Please provide --slug manually.');
+        process.exit(1);
+      }
+    }
+    
+    // Check if slug already exists
+    const { readConfig } = require('../lib/utils');
+    const config = readConfig();
+    if (config.profiles && config.profiles[slug]) {
+      console.error(`❌ Profile '${slug}' already exists. Use a different slug or delete the existing one.`);
+      process.exit(1);
+    }
+    
+    const { addProfile } = require('../lib/utils');
+    addProfile(slug, url, apiKey, setAsDefault);
+    
+    console.log(`✅ Profile '${slug}' added successfully.`);
+    if (setAsDefault) {
+      console.log(`   Set as default profile.`);
+    }
+    return;
+  }
+  
+  if (profileArgs[0] === 'del' || profileArgs[0] === 'delete' || profileArgs[0] === 'remove') {
+    // Check for -i flag
+    const hasInteractive = profileArgs.includes('-i') || profileArgs.includes('--interactive');
+    
+    if (hasInteractive) {
+      // Interactive deletion mode
+      const { listProfiles, deleteProfile } = require('../lib/utils');
+      const profiles = listProfiles();
+      
+      if (profiles.length === 0) {
+        console.log('📋 No profiles found to delete.');
+        return;
+      }
+      
+      console.log('🗑️  Interactive Profile Deletion\n');
+      console.log('📋 Available profiles:\n');
+      profiles.forEach((profile, index) => {
+        const marker = profile.isDefault ? ' (default)' : '';
+        console.log(`  ${index + 1}. ${profile.slug}${marker}`);
+        console.log(`     URL: ${profile.url}`);
+        console.log(`     Key: ${profile.key.substring(0, 8)}...`);
+        console.log();
+      });
+      
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+      
+      return new Promise((resolve) => {
+        rl.question('Enter profile numbers to delete (comma-separated, e.g., 1,3): ', async (answer) => {
+          rl.close();
+          
+          const indices = answer.split(',')
+            .map(s => parseInt(s.trim()) - 1)
+            .filter(i => !isNaN(i) && i >= 0 && i < profiles.length);
+          
+          if (indices.length === 0) {
+            console.log('No valid profile numbers provided. Deletion cancelled.');
+            resolve();
+            return;
+          }
+          
+          console.log(`\n📋 Selected profiles to delete: ${indices.map(i => profiles[i].slug).join(', ')}`);
+          
+          const confirmRl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+          });
+          
+          confirmRl.question('Are you sure you want to delete these profiles? (y/N): ', async (confirmAnswer) => {
+            confirmRl.close();
+            
+            if (confirmAnswer.toLowerCase() === 'y' || confirmAnswer.toLowerCase() === 'yes') {
+              let deletedCount = 0;
+              
+              // Delete profiles in reverse order to maintain indices
+              for (let i = indices.length - 1; i >= 0; i--) {
+                const slug = profiles[indices[i]].slug;
+                const success = deleteProfile(slug);
+                if (success) {
+                  console.log(`✅ Profile '${slug}' deleted successfully.`);
+                  deletedCount++;
+                } else {
+                  console.log(`❌ Failed to delete profile '${slug}'.`);
+                }
+              }
+              
+              console.log(`\n🎉 Deleted ${deletedCount} profile(s).`);
+            } else {
+              console.log('Deletion cancelled.');
+            }
+            resolve();
+          });
+        });
+      });
+    } else {
+      // Original deletion mode with specific slug
+      const slug = profileArgs[1];
+      
+      if (!slug) {
+        console.error('❌ Missing profile slug');
+        console.log('💡 Usage: kimicc profile del SLUG');
+        console.log('   kimicc profile del -i          # Interactive deletion');
+        process.exit(1);
+      }
+      
+      const { readConfig, deleteProfile } = require('../lib/utils');
+      const config = readConfig();
+      
+      if (!config.profiles || !config.profiles[slug]) {
+        console.error(`❌ Profile '${slug}' not found.`);
+        process.exit(1);
+      }
+      
+      // Confirmation prompt
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+      
+      return new Promise((resolve) => {
+        rl.question(`Are you sure you want to delete profile '${slug}'? (y/N): `, async (answer) => {
+          rl.close();
+          
+          if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
+            const success = deleteProfile(slug);
+            if (success) {
+              console.log(`✅ Profile '${slug}' deleted successfully.`);
+            } else {
+              console.log(`❌ Failed to delete profile '${slug}'.`);
+            }
+          } else {
+            console.log('Deletion cancelled.');
+          }
+          resolve();
+        });
+      });
+    }
+  }
+  
+  if (profileArgs[0] === 'set-default') {
+    // profile set-default slug
+    const slug = profileArgs[1];
+    
+    if (!slug) {
+      console.error('❌ Missing profile slug');
+      console.log('💡 Usage: kimicc profile set-default SLUG');
+      process.exit(1);
+    }
+    
+    const { readConfig, setDefaultProfile } = require('../lib/utils');
+    const config = readConfig();
+    
+    if (!config.profiles || !config.profiles[slug]) {
+      console.error(`❌ Profile '${slug}' not found.`);
+      process.exit(1);
+    }
+    
+    setDefaultProfile(slug);
+    console.log(`✅ Set '${slug}' as default profile.`);
+    return;
+  }
+  
+  console.error('❌ Unknown profile command');
+  console.log('💡 Available profile commands:');
+  console.log('   kimicc profile list              # List all profiles');
+  console.log('   kimicc profile add [--slug SLUG] [--default] URL API_KEY');
+  console.log('   kimicc profile del SLUG          # Delete a profile');
+  console.log('   kimicc profile del -i            # Interactive deletion');
+  console.log('   kimicc profile set-default SLUG  # Set default profile');
+}
+
 async function main() {
   // Get command line arguments (remove 'node' and script path)
   const args = process.argv.slice(2);
@@ -108,6 +347,20 @@ async function main() {
   if (args[0] === 'inject') {
     await handleInjectCommand();
     return;
+  }
+  
+  if (args[0] === 'profile') {
+    await handleProfileCommand();
+    return;
+  }
+
+  // Parse profile argument from main command
+  let profileName = null;
+  const profileIndex = args.findIndex(arg => arg === '--profile' || arg === '-p');
+  if (profileIndex !== -1 && profileIndex + 1 < args.length) {
+    profileName = args[profileIndex + 1];
+    // Remove --profile and profile name from args to pass to claude
+    args.splice(profileIndex, 2);
   }
 
   console.log(`🚀 Starting kimicc v${version} - Claude Code with Kimi K2...\n`);
@@ -124,19 +377,26 @@ async function main() {
   // Update Claude settings
   updateClaudeSettings();
 
-  // Get API key
-  const apiKey = await getApiKey();
+  // Get API key and base URL based on profile
+  const apiKey = await getApiKey(profileName);
   if (!apiKey) {
     console.error('No API key provided. Exiting...');
     process.exit(1);
   }
+  
+  const baseUrl = getBaseUrl(profileName);
 
   // Set up environment variables
   const env = {
     ...process.env,
     ANTHROPIC_API_KEY: apiKey,
-    ANTHROPIC_BASE_URL: 'https://api.moonshot.cn/anthropic'
+    ANTHROPIC_BASE_URL: baseUrl
   };
+
+  // Display profile info if using one
+  if (profileName) {
+    console.log(`📋 Using profile: ${profileName}`);
+  }
 
   // Spawn claude process
   console.log('Launching Claude Code...\n');
