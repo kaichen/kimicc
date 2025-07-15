@@ -28,7 +28,7 @@
 
 首次初始化会提示你输入 API Key，下次就无需再次设置。
 
-⚠️注意⚠️，
+⚠️注意⚠️，启动时 Claude Code 会询问 API KEY，默认是 YES，此时要选 NO。
 
 ![screenshot](assets/screenshot.png)
 
