@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const readline = require('readline');
-const { checkClaudeInPath, installClaudeCode, getApiKey, updateClaudeSettings } = require('../lib/utils');
+const { checkClaudeInPath, installClaudeCode, getApiKey, updateClaudeSettings, detectShellType, injectEnvVariables } = require('../lib/utils');
 const { version } = require('../package.json');
 
 const CONFIG_FILE = path.join(os.homedir(), '.kimicc.json');
@@ -42,13 +42,48 @@ async function handleResetCommand() {
   });
 }
 
+async function handleInjectCommand() {
+  console.log('💉 Injecting KimiCC environment variables into shell config...\n');
+  
+  // Get API key first
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    console.error('❌ No API key provided. Cannot inject environment variables.');
+    return;
+  }
+  
+  // Detect shell type
+  const shellType = detectShellType();
+  console.log(`📋 Detected shell: ${shellType}`);
+  
+  // Check for force flag
+  const args = process.argv.slice(2);
+  const force = args.includes('--force') || args.includes('-f');
+  
+  try {
+    const proceed = await injectEnvVariables(apiKey, shellType, force);
+    if (proceed === false) {
+      console.log('Injection cancelled by user.');
+      return;
+    }
+  } catch (error) {
+    console.error('❌ Failed to inject environment variables:', error.message);
+    process.exit(1);
+  }
+}
+
 async function main() {
   // Get command line arguments (remove 'node' and script path)
   const args = process.argv.slice(2);
   
-  // Handle reset subcommand
+  // Handle subcommands
   if (args[0] === 'reset') {
     await handleResetCommand();
+    return;
+  }
+  
+  if (args[0] === 'inject') {
+    await handleInjectCommand();
     return;
   }
 
