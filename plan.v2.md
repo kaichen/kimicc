@@ -34,6 +34,10 @@ source ~/.bashrc
 
 profile add 时，支持添加 --model 可选选项，添加到 profile 配置中，以 model 为 key 存储；如果 profile 设定了 model，则将 ANTHROPIC_MODEL 与 ANTHROPIC_SMALL_FAST_MODEL 环境变量设定为 profile 的 model。
 
-启动时添加 --profile 选择不同的 profile，选择后读取配置中的 url 与 key 设定到 claude 启动的进程环境变量中。
+profile add 时，支持添加 --use-auth-token 选项（可选），若启用，则在注入 env 时采用 ANTHROPIC_AUTH_TOKEN=$apikey 并把 ANTHROPIC_API_KEY 设置为空字符串。在配置中使用auth来存储不同模式，key & token，分别对应 ANTHROPIC_API_KEY 与 ANTHROPIC_AUTH_TOKEN。
+
+启动时 kimicc --profile 选择不同的 profile，选择后读取配置中的 url 与 key 设定到 claude 启动的进程环境变量中。
 
 向前兼容，执行 profile add 时，假如从未添加过 profile，并且设置过 apiKey，则自动把默认的 ANTHROPIC_BASE_URL=https://api.moonshot.cn/anthropic/ 以及 apiKey 迁移到 profile 形式，并设定为 default。
+
+配置优先级，理论上应当保持这三种状态，要么有 profile 没有 apiKey，要么没有 profile 有 apiKey，要么都没有。
