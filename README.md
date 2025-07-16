@@ -1,5 +1,7 @@
 # KIMICC
 
+[![npm version](https://img.shields.io/npm/v/kimicc.svg)](https://www.npmjs.com/package/kimicc)
+
 一步命令 `npx kimicc` 使用 Kimi K2 运行 Claude Code。
 
 或者 `npm install -g kimicc` 安装 KimiCC。
@@ -13,6 +15,7 @@
 3. Kimi K2 是当前 Agentic 特性最高的开源模型，足以驾驭 Claude Code 这个系统；
 4. Kimi K2 API 价格仅有 Claude 的 1/5 到 1/6，支持多种支付方式；
 5. 让更多人体验最先进的开发工具，让厂商卷起来。
+6. v2.0 新增：支持多个不同 API 同时运行，提升并发能力，比如可以同时让多个 Kimi 账号在本地并发。
 
 ## 这个工具包做了什么？
 
@@ -42,6 +45,7 @@ Do you want to use this API key? SELECT YES!!!
 
 - `kimicc reset` 重制配置。
 - `kimicc inject` 将配置写入 shell 配置中，后续可以用 claude 直接启动，无需再通过 kimicc。注意，可以用 `kimicc inject --reset` 删除写入的配置。
+- `kimicc profile` 支持配置多个不同 API Key。
 
 ## 已知问题
 
