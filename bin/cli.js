@@ -174,12 +174,44 @@ async function handleProfileCommand() {
       }
     }
     
-    // Check if slug already exists
+    // Check if slug already exists and prompt for confirmation
     const { readConfig } = require('../lib/utils');
     const config = readConfig();
     if (config.profiles && config.profiles[slug]) {
-      console.error(`❌ Profile '${slug}' already exists. Use a different slug or delete the existing one.`);
-      process.exit(1);
+      console.log(`⚠️  Profile '${slug}' already exists.`);
+      console.log(`   Existing: URL=${config.profiles[slug].url}, Key=${config.profiles[slug].key.substring(0, 8)}...`);
+      
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+      
+      return new Promise((resolve) => {
+        rl.question(`Do you want to overwrite profile '${slug}'? (y/N): `, async (answer) => {
+          rl.close();
+          
+          if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
+            const { addProfile } = require('../lib/utils');
+            addProfile(slug, url, apiKey, setAsDefault, model, useAuthToken);
+            
+            console.log(`✅ Profile '${slug}' updated successfully.`);
+            if (setAsDefault) {
+              console.log(`   Set as default profile.`);
+            }
+            if (model) {
+              console.log(`   Model: ${model}`);
+            }
+            if (useAuthToken) {
+              console.log(`   Auth mode: token`);
+            } else {
+              console.log(`   Auth mode: key`);
+            }
+          } else {
+            console.log('Profile addition cancelled.');
+          }
+          resolve();
+        });
+      });
     }
     
     const { addProfile } = require('../lib/utils');
