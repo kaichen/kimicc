@@ -1,4 +1,6 @@
 .claude/
+.github/
 assets/
 CLAUDE.md
 plan.md
+plan.*.md
