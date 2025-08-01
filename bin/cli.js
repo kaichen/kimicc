@@ -124,10 +124,10 @@ async function handleProfileCommand() {
   }
   
   if (profileArgs[0] === 'add') {
-    // profile add [--slug slug] [--model model] [--default] url API_KEY
+    // profile add [--slug slug] [--model model] [--default] url AUTH_TOKEN
     let slug = null;
     let url = null;
-    let apiKey = null;
+    let authToken = null;
     let model = null;
     let setAsDefault = false;
     
@@ -141,14 +141,14 @@ async function handleProfileCommand() {
         setAsDefault = true;
       } else if (!url) {
         url = profileArgs[i];
-      } else if (!apiKey) {
-        apiKey = profileArgs[i];
+      } else if (!authToken) {
+        authToken = profileArgs[i];
       }
     }
     
-    if (!url || !apiKey) {
+    if (!url || !authToken) {
       console.error('❌ Missing required arguments: URL and auth token');
-      console.log('💡 Usage: kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL API_KEY');
+      console.log('💡 Usage: kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL AUTH_TOKEN');
       process.exit(1);
     }
     

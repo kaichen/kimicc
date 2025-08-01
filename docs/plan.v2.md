@@ -13,12 +13,12 @@ DONE: PR#3
 假如仅使用单一版本 kimi k2 版本，则可以设置到 shell（如根据情况写入 export env key 到 .bashrc 或 .zshrc）。这样 claude code 默认启动就采用设定的 ANTHROPIC_AUTH_TOKEN 与 ANTHROPIC_BASE_URL，方便其他程序调用。
 
 zsh用户：
-echo 'export ANTHROPIC_BASE_URL="https://api.moonshot.cn/anthropic/"' >> ~/.zshrc
+echo 'export ANTHROPIC_BASE_URL="https://api.moonshot.cn/anthropic"' >> ~/.zshrc
 echo 'export ANTHROPIC_AUTH_TOKEN="你的实际API密钥"' >> ~/.zshrc
 source ~/.zshrc
 
 bash用户：
-echo 'export ANTHROPIC_BASE_URL="https://api.moonshot.cn/anthropic/"' >> ~/.bashrc
+echo 'export ANTHROPIC_BASE_URL="https://api.moonshot.cn/anthropic"' >> ~/.bashrc
 echo 'export ANTHROPIC_AUTH_TOKEN="你的实际API密钥"' >> ~/.bashrc
 source ~/.bashrc
 
@@ -37,6 +37,6 @@ profile add 时，支持添加 --model 可选选项，添加到 profile 配置�
 
 启动时 kimicc --profile 选择不同的 profile，选择后读取配置中的 url 与 key 设定到 claude 启动的进程环境变量中。
 
-向前兼容，执行 profile add 时，假如从未添加过 profile，并且设置过 authToken，则自动把默认的 ANTHROPIC_BASE_URL=https://api.moonshot.cn/anthropic/ 以及 authToken 迁移到 profile 形式，并设定为 default。
+向前兼容，执行 profile add 时，假如从未添加过 profile，并且设置过 authToken，则自动把默认的 ANTHROPIC_BASE_URL=https://api.moonshot.cn/anthropic 以及 authToken 迁移到 profile 形式，并设定为 default。
 
 配置优先级，理论上应当保持这三种状态，要么有 profile 没有 authToken，要么没有 profile 有 authToken，要么都没有。
