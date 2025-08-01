@@ -17,13 +17,12 @@ The project has a simple architecture:
 ### API Key Priority
 The system checks for API keys in this order:
 1. `KIMI_API_KEY` environment variable
-2. `ANTHROPIC_API_KEY` environment variable  
-3. `~/.kimicc.json` config file
-4. Interactive prompt (saves to config file)
+2. `~/.kimicc.json` config file
+3. Interactive prompt (saves to config file)
 
 ### Environment Setup
 Before spawning the Claude process, the wrapper sets:
-- `ANTHROPIC_API_KEY` - The Kimi API key
+- `ANTHROPIC_AUTH_TOKEN` - The Kimi API key
 - `ANTHROPIC_BASE_URL` - https://api.moonshot.cn/anthropic
 
 ### Claude Installation

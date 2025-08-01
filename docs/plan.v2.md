@@ -10,16 +10,16 @@ DONE: PR#3
 
 添加 inject 子命令，实现以下能力：
 
-假如仅使用单一版本 kimi k2 版本，则可以设置到 shell（如根据情况写入 export env key 到 .bashrc 或 .zshrc）。这样 claude code 默认启动就采用设定的 ANTHROPIC_API_KEY 与 ANTHROPIC_BASE_URL，方便其他程序调用。
+假如仅使用单一版本 kimi k2 版本，则可以设置到 shell（如根据情况写入 export env key 到 .bashrc 或 .zshrc）。这样 claude code 默认启动就采用设定的 ANTHROPIC_AUTH_TOKEN 与 ANTHROPIC_BASE_URL，方便其他程序调用。
 
 zsh用户：
 echo 'export ANTHROPIC_BASE_URL="https://api.moonshot.cn/anthropic/"' >> ~/.zshrc
-echo 'export ANTHROPIC_API_KEY="你的实际API密钥"' >> ~/.zshrc
+echo 'export ANTHROPIC_AUTH_TOKEN="你的实际API密钥"' >> ~/.zshrc
 source ~/.zshrc
 
 bash用户：
 echo 'export ANTHROPIC_BASE_URL="https://api.moonshot.cn/anthropic/"' >> ~/.bashrc
-echo 'export ANTHROPIC_API_KEY="你的实际API密钥"' >> ~/.bashrc
+echo 'export ANTHROPIC_AUTH_TOKEN="你的实际API密钥"' >> ~/.bashrc
 source ~/.bashrc
 
 ## feature#3 multi profiles
@@ -34,7 +34,6 @@ source ~/.bashrc
 
 profile add 时，支持添加 --model 可选选项，添加到 profile 配置中，以 model 为 key 存储；如果 profile 设定了 model，则将 ANTHROPIC_MODEL 与 ANTHROPIC_SMALL_FAST_MODEL 环境变量设定为 profile 的 model。
 
-profile add 时，支持添加 --use-auth-token 选项（可选），若启用，则在注入 env 时采用 ANTHROPIC_AUTH_TOKEN=$apikey 并把 ANTHROPIC_API_KEY 设置为空字符串。在配置中使用auth来存储不同模式，key & token，分别对应 ANTHROPIC_API_KEY 与 ANTHROPIC_AUTH_TOKEN。
 
 启动时 kimicc --profile 选择不同的 profile，选择后读取配置中的 url 与 key 设定到 claude 启动的进程环境变量中。
 

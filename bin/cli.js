@@ -112,27 +112,24 @@ async function handleProfileCommand() {
     console.log('📋 Available profiles:\n');
     profiles.forEach(profile => {
       const marker = profile.isDefault ? ' (default)' : '';
-      const authMode = profile.auth === 'token' ? 'token' : 'key';
       console.log(`  ${profile.slug}${marker}`);
       console.log(`    URL: ${profile.url}`);
       console.log(`    Key: ${profile.key.substring(0, 8)}...`);
       if (profile.model) {
         console.log(`    Model: ${profile.model}`);
       }
-      console.log(`    Auth: ${authMode}`);
       console.log();
     });
     return;
   }
   
   if (profileArgs[0] === 'add') {
-    // profile add [--slug slug] [--model model] [--default] [--use-auth-token] url apikey
+    // profile add [--slug slug] [--model model] [--default] url apikey
     let slug = null;
     let url = null;
     let apiKey = null;
     let model = null;
     let setAsDefault = false;
-    let useAuthToken = false;
     
     // Parse arguments
     for (let i = 1; i < profileArgs.length; i++) {
@@ -142,8 +139,6 @@ async function handleProfileCommand() {
         model = profileArgs[++i];
       } else if (profileArgs[i] === '--default') {
         setAsDefault = true;
-      } else if (profileArgs[i] === '--use-auth-token') {
-        useAuthToken = true;
       } else if (!url) {
         url = profileArgs[i];
       } else if (!apiKey) {
@@ -153,7 +148,7 @@ async function handleProfileCommand() {
     
     if (!url || !apiKey) {
       console.error('❌ Missing required arguments: URL and API key');
-      console.log('💡 Usage: kimicc profile add [--slug SLUG] [--model MODEL] [--default] [--use-auth-token] URL API_KEY');
+      console.log('💡 Usage: kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL API_KEY');
       process.exit(1);
     }
     
@@ -192,7 +187,7 @@ async function handleProfileCommand() {
           
           if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
             const { addProfile } = require('../lib/utils');
-            addProfile(slug, url, apiKey, setAsDefault, model, useAuthToken);
+            addProfile(slug, url, apiKey, setAsDefault, model);
             
             console.log(`✅ Profile '${slug}' updated successfully.`);
             if (setAsDefault) {
@@ -200,11 +195,6 @@ async function handleProfileCommand() {
             }
             if (model) {
               console.log(`   Model: ${model}`);
-            }
-            if (useAuthToken) {
-              console.log(`   Auth mode: token`);
-            } else {
-              console.log(`   Auth mode: key`);
             }
           } else {
             console.log('Profile addition cancelled.');
@@ -215,7 +205,7 @@ async function handleProfileCommand() {
     }
     
     const { addProfile } = require('../lib/utils');
-    addProfile(slug, url, apiKey, setAsDefault, model, useAuthToken);
+    addProfile(slug, url, apiKey, setAsDefault, model);
     
     console.log(`✅ Profile '${slug}' added successfully.`);
     if (setAsDefault) {
@@ -223,11 +213,6 @@ async function handleProfileCommand() {
     }
     if (model) {
       console.log(`   Model: ${model}`);
-    }
-    if (useAuthToken) {
-      console.log(`   Auth mode: token`);
-    } else {
-      console.log(`   Auth mode: key`);
     }
     return;
   }
@@ -250,11 +235,9 @@ async function handleProfileCommand() {
       console.log('📋 Available profiles:\n');
       profiles.forEach((profile, index) => {
         const marker = profile.isDefault ? ' (default)' : '';
-        const authMode = profile.auth === 'token' ? 'token' : 'key';
         console.log(`  ${index + 1}. ${profile.slug}${marker}`);
         console.log(`     URL: ${profile.url}`);
         console.log(`     Key: ${profile.key.substring(0, 8)}...`);
-        console.log(`     Auth: ${authMode}`);
         console.log();
       });
       
@@ -381,7 +364,7 @@ async function handleProfileCommand() {
   console.error('❌ Unknown profile command');
   console.log('💡 Available profile commands:');
   console.log('   kimicc profile list              # List all profiles');
-  console.log('   kimicc profile add [--slug SLUG] [--model MODEL] [--default] [--use-auth-token] URL API_KEY');
+  console.log('   kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL API_KEY');
   console.log('   kimicc profile del SLUG          # Delete a profile');
   console.log('   kimicc profile del -i            # Interactive deletion');
   console.log('   kimicc profile set-default SLUG  # Set default profile');
@@ -440,30 +423,14 @@ async function main() {
   const baseUrl = getBaseUrl(profileName);
   const model = getModel(profileName);
 
-  // Set up environment variables based on auth mode
-  const config = require('../lib/utils').readConfig();
-  let authMode = 'key';
-  
-  if (profileName) {
-    const profile = config.profiles?.[profileName];
-    if (profile) {
-      authMode = profile.auth || 'key';
-    }
-  } else if (config.defaultProfile && config.profiles?.[config.defaultProfile]) {
-    authMode = config.profiles[config.defaultProfile].auth || 'key';
-  }
 
   const env = {
     ...process.env,
     ANTHROPIC_BASE_URL: baseUrl,
   };
 
-  if (authMode === 'token') {
-    env.ANTHROPIC_AUTH_TOKEN = apiKey;
-    env.ANTHROPIC_API_KEY = ''; // Set to empty string when using token
-  } else {
-    env.ANTHROPIC_API_KEY = apiKey;
-  }
+  // Always use auth token mode
+  env.ANTHROPIC_AUTH_TOKEN = apiKey;
 
   // Set model environment variables if specified in profile
   if (model) {
