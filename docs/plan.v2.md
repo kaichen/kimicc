@@ -24,11 +24,11 @@ source ~/.bashrc
 
 ## feature#3 multi profiles
 
-为了可以使用多个服务供应商并发多个 kimicc 实例，可以在 .kimicc.json 配置文件中添加 `{'profiles':{ $slug: { url: $url, key: $apikey }, ... }}` 的配置，并在启动时选择不同 profile 设定。
+为了可以使用多个服务供应商并发多个 kimicc 实例，可以在 .kimicc.json 配置文件中添加 `{'profiles':{ $slug: { url: $url, key: $authtoken }, ... }}` 的配置，并在启动时选择不同 profile 设定。
 
 提供子命令
 - profile list ：列出所有 profile。
-- profile add --slug $slug $url $apikey ：添加新的profile，自动将 url 中的 hostname，如 123.example.com => examplecom 作为 slug，也可指定 slug。
+- profile add --slug $slug $url $authtoken ：添加新的profile，自动将 url 中的 hostname，如 123.example.com => examplecom 作为 slug，也可指定 slug。
 - profile del $slug ：删除某个 profile，需要用户输入作为确认。
 - profile del -i ：交互式删除，列出 profile 与序号，用户输入一个或多个数字（逗号隔开），按照选择删除。
 
@@ -37,6 +37,6 @@ profile add 时，支持添加 --model 可选选项，添加到 profile 配置�
 
 启动时 kimicc --profile 选择不同的 profile，选择后读取配置中的 url 与 key 设定到 claude 启动的进程环境变量中。
 
-向前兼容，执行 profile add 时，假如从未添加过 profile，并且设置过 apiKey，则自动把默认的 ANTHROPIC_BASE_URL=https://api.moonshot.cn/anthropic/ 以及 apiKey 迁移到 profile 形式，并设定为 default。
+向前兼容，执行 profile add 时，假如从未添加过 profile，并且设置过 authToken，则自动把默认的 ANTHROPIC_BASE_URL=https://api.moonshot.cn/anthropic/ 以及 authToken 迁移到 profile 形式，并设定为 default。
 
-配置优先级，理论上应当保持这三种状态，要么有 profile 没有 apiKey，要么没有 profile 有 apiKey，要么都没有。
+配置优先级，理论上应当保持这三种状态，要么有 profile 没有 authToken，要么没有 profile 有 authToken，要么都没有。
