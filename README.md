@@ -19,21 +19,21 @@
 
 ## 这个工具包做了什么？
 
-这个工具做一些微小的工作，帮你节省时间去处理配置的工作。底层是在启动 claude 之前设定好 API Key 和 Base URL 环境变量参数。
+这个工具做一些微小的工作，帮你节省时间去处理配置的工作。底层是在启动 claude 之前设定好 Auth Token 和 Base URL 环境变量参数。
 
 对比其他教程让你配置文件，或者在启动时加长长的参数，使用本工具会节省你宝贵的时间精力。
 
 ## 使用方式
 
-- 第一步，访问 [开发者平台](https://platform.moonshot.cn/playground) 获取 Kimi API Key；
+- 第一步，访问 [开发者平台](https://platform.moonshot.cn/console/api-keys) 获取 Kimi API Key
 - 第二步，在你本地有 Nodejs 环境的前提下，运行 `npx kimicc` 安装并启动，或者使用 `npm install -g kimicc`；
-- 第三步，在安装后可使用 kimicc 直接启动，并在提示下输入 API Key。
+- 第三步，在安装后可使用 kimicc 直接启动，并在提示下输入 Auth Token。
 
-首次初始化会提示你输入 API Key，下次就无需再次设置。
+首次初始化会提示你输入 Auth Token，下次就无需再次设置。
 
-⚠️注意⚠️，启动时 Claude Code 会询问 API KEY，默认是 NO(recommended），此时要选 YES。
+⚠️注意⚠️，启动时 Claude Code 会询问 AUTH TOKEN，默认是 NO(recommended），此时要选 YES。
 
-Do you want to use this API key? SELECT YES!!!
+Do you want to use this auth token? SELECT YES!!!
 
 ![screenshot](assets/screenshot.png)
 
@@ -45,7 +45,7 @@ Do you want to use this API key? SELECT YES!!!
 
 - `kimicc reset` 重制配置。
 - `kimicc inject` 将配置写入 shell 配置中，后续可以用 claude 直接启动，无需再通过 kimicc。注意，可以用 `kimicc inject --reset` 删除写入的配置。
-- `kimicc profile` 支持配置多个不同 API Key。
+- `kimicc profile` 支持配置多个不同服务提供商。
 
 ## 已知问题
 
