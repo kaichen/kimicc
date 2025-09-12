@@ -5,10 +5,25 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const readline = require('readline');
-const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables } = require('../lib/utils');
+const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables, readConfig, getProfileConfig, addProfile } = require('../lib/utils');
+const { parseProviderFlag, getProviderBySlug } = require('../lib/providers');
 const { version } = require('../package.json');
 
 const CONFIG_FILE = path.join(os.homedir(), '.kimicc.json');
+
+function promptForTokenForProvider(providerName) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  const name = providerName || 'provider';
+  return new Promise((resolve) => {
+    rl.question(`Enter API Auth Token for ${name}: `, (authToken) => {
+      rl.close();
+      resolve((authToken || '').trim());
+    });
+  });
+}
 
 async function handleResetCommand() {
   console.log('🗑️  Resetting kimicc configuration...\n');
@@ -98,6 +113,33 @@ async function handleInjectCommand() {
 async function handleProfileCommand() {
   const args = process.argv.slice(2);
   const profileArgs = args.slice(1); // Skip the 'profile' command itself
+  // Detect provider quick flags and base_url/--base-url override
+  let providerFlag = parseProviderFlag(profileArgs);
+  let providerSlug = providerFlag ? providerFlag.slug : null;
+  if (providerFlag) {
+    profileArgs.splice(providerFlag.index, 1);
+  }
+  // Parse base_url=... or --base-url URL
+  let overrideBaseUrl = null;
+  for (let i = 0; i < profileArgs.length; i++) {
+    const tok = profileArgs[i];
+    const m = typeof tok === 'string' ? tok.match(/^base_url=(.+)$/i) : null;
+    if (m) {
+      overrideBaseUrl = m[1];
+      profileArgs.splice(i, 1);
+      break;
+    }
+  }
+  const baseUrlFlagIndex = profileArgs.findIndex(a => a === '--base-url');
+  if (baseUrlFlagIndex !== -1) {
+    if (baseUrlFlagIndex + 1 < profileArgs.length) {
+      overrideBaseUrl = profileArgs[baseUrlFlagIndex + 1];
+      profileArgs.splice(baseUrlFlagIndex, 2);
+    } else {
+      console.error('❌ Missing value for --base-url');
+      process.exit(1);
+    }
+  }
   
   if (profileArgs.length === 0 || profileArgs[0] === 'list') {
     // profile list
@@ -130,25 +172,54 @@ async function handleProfileCommand() {
     let authToken = null;
     let model = null;
     let setAsDefault = false;
-    
-    // Parse arguments
+
+    // Collect positional args after options
+    const remaining = [];
     for (let i = 1; i < profileArgs.length; i++) {
-      if (profileArgs[i] === '--slug' && i + 1 < profileArgs.length) {
+      const v = profileArgs[i];
+      if (v === '--slug' && i + 1 < profileArgs.length) {
         slug = profileArgs[++i];
-      } else if (profileArgs[i] === '--model' && i + 1 < profileArgs.length) {
+      } else if (v === '--model' && i + 1 < profileArgs.length) {
         model = profileArgs[++i];
-      } else if (profileArgs[i] === '--default') {
+      } else if (v === '--default') {
         setAsDefault = true;
-      } else if (!url) {
-        url = profileArgs[i];
-      } else if (!authToken) {
-        authToken = profileArgs[i];
+      } else {
+        remaining.push(v);
       }
     }
+
+    // If provider flag present and overrideBaseUrl not set, set defaults from provider
+    if (providerSlug) {
+      const p = getProviderBySlug(providerSlug);
+      if (!overrideBaseUrl && p) overrideBaseUrl = p.baseUrl;
+      // Default slug if not provided
+      if (!slug) slug = providerSlug;
+      // Default model if not provided
+      if (!model && p && p.defaultModel) model = p.defaultModel;
+    }
+
+    // Derive url/authToken from remaining
+    if (remaining.length >= 2) {
+      url = remaining[0];
+      authToken = remaining[1];
+    } else if (remaining.length === 1) {
+      // If provider specified, treat single arg as auth token
+      if (overrideBaseUrl) {
+        url = overrideBaseUrl;
+        authToken = remaining[0];
+      } else {
+        // Ambiguous: treat as URL and prompt later (but we require token), so fail
+        url = remaining[0];
+      }
+    }
+
+    // If no URL but we have overrideBaseUrl, use it
+    if (!url && overrideBaseUrl) url = overrideBaseUrl;
     
     if (!url || !authToken) {
       console.error('❌ Missing required arguments: URL and auth token');
       console.log('💡 Usage: kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL AUTH_TOKEN');
+      console.log('   Or:   kimicc profile add --kimi|--deepseek|--glm|--qwen [--base-url URL|base_url=URL] AUTH_TOKEN');
       process.exit(1);
     }
     
@@ -365,6 +436,7 @@ async function handleProfileCommand() {
   console.log('💡 Available profile commands:');
   console.log('   kimicc profile list              # List all profiles');
   console.log('   kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL AUTH_TOKEN');
+  console.log('   kimicc profile add --kimi|--deepseek|--glm|--qwen [--base-url URL|base_url=URL] AUTH_TOKEN');
   console.log('   kimicc profile del SLUG          # Delete a profile');
   console.log('   kimicc profile del -i            # Interactive deletion');
   console.log('   kimicc profile set-default SLUG  # Set default profile');
@@ -390,6 +462,35 @@ async function main() {
     return;
   }
 
+  // Parse provider quick flags and base_url overrides
+  let provider = parseProviderFlag(args);
+  let selectedProviderSlug = provider ? provider.slug : null;
+  if (provider) {
+    // Remove provider flag from args passed through
+    args.splice(provider.index, 1);
+  }
+  // Parse base_url=... or --base-url URL on root command
+  let explicitBaseUrl = null;
+  for (let i = 0; i < args.length; i++) {
+    const tok = args[i];
+    const m = typeof tok === 'string' ? tok.match(/^base_url=(.+)$/i) : null;
+    if (m) {
+      explicitBaseUrl = m[1];
+      args.splice(i, 1);
+      break;
+    }
+  }
+  const baseUrlIdx = args.findIndex(a => a === '--base-url');
+  if (baseUrlIdx !== -1) {
+    if (baseUrlIdx + 1 < args.length) {
+      explicitBaseUrl = args[baseUrlIdx + 1];
+      args.splice(baseUrlIdx, 2);
+    } else {
+      console.error('❌ Missing value for --base-url');
+      process.exit(1);
+    }
+  }
+
   // Parse profile argument from main command
   let profileName = null;
   const profileIndex = args.findIndex(arg => arg === '--profile' || arg === '-p');
@@ -397,6 +498,39 @@ async function main() {
     profileName = args[profileIndex + 1];
     // Remove --profile and profile name from args to pass to claude
     args.splice(profileIndex, 2);
+  }
+
+  // If provider flag and profile both present, provider takes precedence
+  if (selectedProviderSlug && profileName) {
+    console.log(`⚠️  Both --profile and provider flag specified; using provider '--${selectedProviderSlug}'.`);
+    profileName = null;
+  }
+
+  // If a provider flag is used, prefer existing same-name profile; otherwise initialize one
+  if (selectedProviderSlug) {
+    const config = readConfig();
+    const existing = config.profiles && config.profiles[selectedProviderSlug];
+    if (existing) {
+      profileName = selectedProviderSlug;
+    } else {
+      const p = getProviderBySlug(selectedProviderSlug);
+      const urlToUse = explicitBaseUrl || (p && p.baseUrl) || 'https://api.moonshot.cn/anthropic';
+      try {
+        new URL(urlToUse);
+      } catch (e) {
+        console.error('❌ Invalid base URL. Provide a valid URL via --base-url or base_url=.');
+        process.exit(1);
+      }
+      const token = await promptForTokenForProvider(p ? p.name : selectedProviderSlug);
+      if (!token) {
+        console.error('❌ No auth token provided. Exiting...');
+        process.exit(1);
+      }
+      const modelToUse = p && p.defaultModel ? p.defaultModel : null;
+      addProfile(selectedProviderSlug, urlToUse, token, false, modelToUse);
+      console.log(`✅ Profile '${selectedProviderSlug}' created.`);
+      profileName = selectedProviderSlug;
+    }
   }
 
   console.log(`🚀 Starting kimicc v${version} - Claude Code with Kimi K2...\n`);
@@ -413,14 +547,30 @@ async function main() {
   // Update Claude settings
   updateClaudeSettings();
 
-  // Get auth token, base URL, and model based on profile
+  // Get auth token, base URL, and model based on profile or provider
   const authToken = await getAuthToken(profileName);
   if (!authToken) {
     console.error('No auth token provided. Exiting...');
     process.exit(1);
   }
   
-  const baseUrl = getBaseUrl(profileName);
+  // Base URL resolution priority:
+  // 1) explicit --base-url/base_url
+  // 2) profile URL when a profile is selected (including provider-created)
+  // 3) provider default URL when provider flag used but no profile selected
+  // 4) default behavior in utils
+  let baseUrl = null;
+  if (explicitBaseUrl) {
+    baseUrl = explicitBaseUrl;
+  } else if (profileName) {
+    baseUrl = getBaseUrl(profileName);
+  } else if (selectedProviderSlug) {
+    const p = getProviderBySlug(selectedProviderSlug);
+    baseUrl = (p && p.baseUrl) ? p.baseUrl : null;
+  }
+  if (!baseUrl) {
+    baseUrl = getBaseUrl(profileName);
+  }
   const model = getModel(profileName);
 
 
@@ -441,6 +591,8 @@ async function main() {
   // Display profile info if using one
   if (profileName) {
     console.log(`📋 Using profile: ${profileName}`);
+  } else if (selectedProviderSlug) {
+    console.log(`📋 Using provider: ${selectedProviderSlug}`);
   }
 
   // Spawn claude process
