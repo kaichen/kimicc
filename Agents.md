@@ -25,12 +25,12 @@ The system checks for auth tokens in this order:
 Before spawning the Claude process, the wrapper sets:
 - `ANTHROPIC_AUTH_TOKEN` - The Kimi auth token
 - `ANTHROPIC_BASE_URL` - https://api.moonshot.cn/anthropic
-- `ANTHROPIC_MODEL` - (optional) If specified in profile
-- `ANTHROPIC_SMALL_FAST_MODEL` - (optional) If specified in profile
+- `ANTHROPIC_MODEL` - (optional) From CLI/env/profile
+- `ANTHROPIC_SMALL_FAST_MODEL` - (optional) From CLI/env/profile; falls back to `ANTHROPIC_MODEL` if unset
 
 ### Multi-Profile Support
 - Profiles are stored in `~/.kimicc.json` under the `profiles` key
-- Each profile contains: `url`, `key` (auth token), and optionally `model`
+- Each profile contains: `url`, `key` (auth token), and optionally `model`, `smallFastModel` (may be empty). If `smallFastModel` is not set, runtime falls back to `model`.
 - Users can switch profiles using `kimicc --profile <profile-name>`
 - Default profile is stored in `defaultProfile` field
 
@@ -45,13 +45,15 @@ npm install -g @anthropic-ai/claude-code
 ### Main Commands
 - `kimicc` - Start Claude Code with default settings
 - `kimicc --profile <name>` - Start with a specific profile
+- `kimicc --model <name>` - Override model for this run
+- `kimicc --small-fast-model <name>` - Override small/fast model for this run
 - `kimicc reset` - Delete the configuration file
 - `kimicc inject` - Inject environment variables into shell config
 - `kimicc inject --reset` - Remove injected variables from shell config
 
 ### Profile Management
 - `kimicc profile list` - List all profiles
-- `kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL AUTH_TOKEN`
+- `kimicc profile add [--slug SLUG] [--model MODEL] [--small-fast-model MODEL] [--default] URL AUTH_TOKEN`
 - `kimicc profile del SLUG` - Delete a specific profile
 - `kimicc profile del -i` - Interactive deletion mode
 - `kimicc profile set-default SLUG` - Set default profile
@@ -97,12 +99,19 @@ npm unlink
     "custom": {
       "url": "https://api.example.com/anthropic",
       "key": "sk-...",
-      "model": "claude-3-opus-20240229"
+      "model": "claude-3-opus-20240229",
+      "smallFastModel": "claude-3-haiku-20240307"
     }
   },
   "defaultProfile": "default"
 }
 ```
+
+## Precedence Rules
+
+- Auth token: `KIMI_AUTH_TOKEN` > profile/default > prompt
+- Base URL: CLI `--base-url`/`base_url=` > `ANTHROPIC_BASE_URL` > profile/default > Kimi default
+- Models: CLI `--model`/`--small-fast-model` > `ANTHROPIC_MODEL`/`ANTHROPIC_SMALL_FAST_MODEL` > profile fields > `smallFastModel` falls back to `model`
 
 ## Legacy Migration
 The system automatically migrates legacy configurations (with `apiKey` field) to the new profile format when adding the first profile.

@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const readline = require('readline');
-const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables, readConfig, getProfileConfig, addProfile } = require('../lib/utils');
+const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, getSmallFastModel, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables, readConfig, getProfileConfig, addProfile, ensureDefaultProfileKimiDefaults } = require('../lib/utils');
 const { parseProviderFlag, getProviderBySlug } = require('../lib/providers');
 const { version } = require('../package.json');
 
@@ -157,20 +157,20 @@ async function handleProfileCommand() {
       console.log(`  ${profile.slug}${marker}`);
       console.log(`    URL: ${profile.url}`);
       console.log(`    Key: ${profile.key.substring(0, 8)}...`);
-      if (profile.model) {
-        console.log(`    Model: ${profile.model}`);
-      }
+      if (profile.model) console.log(`    Model: ${profile.model}`);
+      if (profile.smallFastModel) console.log(`    SmallFastModel: ${profile.smallFastModel}`);
       console.log();
     });
     return;
   }
   
   if (profileArgs[0] === 'add') {
-    // profile add [--slug slug] [--model model] [--default] url AUTH_TOKEN
+    // profile add [--slug slug] [--model model] [--small-fast-model model] [--default] url AUTH_TOKEN
     let slug = null;
     let url = null;
     let authToken = null;
     let model = null;
+    let smallFastModel = null;
     let setAsDefault = false;
 
     // Collect positional args after options
@@ -181,6 +181,12 @@ async function handleProfileCommand() {
         slug = profileArgs[++i];
       } else if (v === '--model' && i + 1 < profileArgs.length) {
         model = profileArgs[++i];
+      } else if (v && typeof v === 'string' && v.startsWith('--model=')) {
+        model = v.split('=')[1];
+      } else if (v === '--small-fast-model' && i + 1 < profileArgs.length) {
+        smallFastModel = profileArgs[++i];
+      } else if (v && typeof v === 'string' && v.startsWith('--small-fast-model=')) {
+        smallFastModel = v.split('=')[1];
       } else if (v === '--default') {
         setAsDefault = true;
       } else {
@@ -218,7 +224,7 @@ async function handleProfileCommand() {
     
     if (!url || !authToken) {
       console.error('❌ Missing required arguments: URL and auth token');
-      console.log('💡 Usage: kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL AUTH_TOKEN');
+      console.log('💡 Usage: kimicc profile add [--slug SLUG] [--model MODEL] [--small-fast-model MODEL] [--default] URL AUTH_TOKEN');
       console.log('   Or:   kimicc profile add --kimi|--deepseek|--glm|--qwen [--base-url URL|base_url=URL] AUTH_TOKEN');
       process.exit(1);
     }
@@ -258,7 +264,7 @@ async function handleProfileCommand() {
           
           if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
             const { addProfile } = require('../lib/utils');
-            addProfile(slug, url, authToken, setAsDefault, model);
+            addProfile(slug, url, authToken, setAsDefault, model, smallFastModel);
             
             console.log(`✅ Profile '${slug}' updated successfully.`);
             if (setAsDefault) {
@@ -266,6 +272,9 @@ async function handleProfileCommand() {
             }
             if (model) {
               console.log(`   Model: ${model}`);
+            }
+            if (smallFastModel) {
+              console.log(`   SmallFastModel: ${smallFastModel}`);
             }
           } else {
             console.log('Profile addition cancelled.');
@@ -276,7 +285,7 @@ async function handleProfileCommand() {
     }
     
     const { addProfile } = require('../lib/utils');
-    addProfile(slug, url, authToken, setAsDefault, model);
+    addProfile(slug, url, authToken, setAsDefault, model, smallFastModel);
     
     console.log(`✅ Profile '${slug}' added successfully.`);
     if (setAsDefault) {
@@ -284,6 +293,9 @@ async function handleProfileCommand() {
     }
     if (model) {
       console.log(`   Model: ${model}`);
+    }
+    if (smallFastModel) {
+      console.log(`   SmallFastModel: ${smallFastModel}`);
     }
     return;
   }
@@ -435,7 +447,7 @@ async function handleProfileCommand() {
   console.error('❌ Unknown profile command');
   console.log('💡 Available profile commands:');
   console.log('   kimicc profile list              # List all profiles');
-  console.log('   kimicc profile add [--slug SLUG] [--model MODEL] [--default] URL AUTH_TOKEN');
+  console.log('   kimicc profile add [--slug SLUG] [--model MODEL] [--small-fast-model MODEL] [--default] URL AUTH_TOKEN');
   console.log('   kimicc profile add --kimi|--deepseek|--glm|--qwen [--base-url URL|base_url=URL] AUTH_TOKEN');
   console.log('   kimicc profile del SLUG          # Delete a profile');
   console.log('   kimicc profile del -i            # Interactive deletion');
@@ -445,6 +457,8 @@ async function handleProfileCommand() {
 async function main() {
   // Get command line arguments (remove 'node' and script path)
   const args = process.argv.slice(2);
+  // Ensure default profile behaves like --kimi (URL + models set)
+  try { ensureDefaultProfileKimiDefaults(); } catch {}
   
   // Handle subcommands
   if (args[0] === 'reset') {
@@ -471,6 +485,8 @@ async function main() {
   }
   // Parse base_url=... or --base-url URL on root command
   let explicitBaseUrl = null;
+  let explicitModel = null;
+  let explicitSmallFastModel = null;
   for (let i = 0; i < args.length; i++) {
     const tok = args[i];
     const m = typeof tok === 'string' ? tok.match(/^base_url=(.+)$/i) : null;
@@ -488,6 +504,44 @@ async function main() {
     } else {
       console.error('❌ Missing value for --base-url');
       process.exit(1);
+    }
+  }
+
+  // Parse model overrides on root command (support --flag value and --flag=value)
+  // --model value
+  let modelIdx = args.findIndex(a => a === '--model');
+  if (modelIdx !== -1) {
+    if (modelIdx + 1 < args.length) {
+      explicitModel = args[modelIdx + 1];
+      args.splice(modelIdx, 2);
+    } else {
+      console.error('❌ Missing value for --model');
+      process.exit(1);
+    }
+  } else {
+    // --model=value
+    const modelEqIdx = args.findIndex(a => typeof a === 'string' && a.startsWith('--model='));
+    if (modelEqIdx !== -1) {
+      explicitModel = args[modelEqIdx].split('=')[1];
+      args.splice(modelEqIdx, 1);
+    }
+  }
+  // --small-fast-model value
+  let smallFastIdx = args.findIndex(a => a === '--small-fast-model');
+  if (smallFastIdx !== -1) {
+    if (smallFastIdx + 1 < args.length) {
+      explicitSmallFastModel = args[smallFastIdx + 1];
+      args.splice(smallFastIdx, 2);
+    } else {
+      console.error('❌ Missing value for --small-fast-model');
+      process.exit(1);
+    }
+  } else {
+    // --small-fast-model=value
+    const smallFastEqIdx = args.findIndex(a => typeof a === 'string' && a.startsWith('--small-fast-model='));
+    if (smallFastEqIdx !== -1) {
+      explicitSmallFastModel = args[smallFastEqIdx].split('=')[1];
+      args.splice(smallFastEqIdx, 1);
     }
   }
 
@@ -571,7 +625,8 @@ async function main() {
   if (!baseUrl) {
     baseUrl = getBaseUrl(profileName);
   }
-  const model = getModel(profileName);
+  const modelFromEnvOrProfile = getModel(profileName);
+  const smallFastFromEnvOrProfile = getSmallFastModel(profileName);
 
 
   const env = {
@@ -582,10 +637,20 @@ async function main() {
   // Always use auth token mode
   env.ANTHROPIC_AUTH_TOKEN = authToken;
 
-  // Set model environment variables if specified in profile
-  if (model) {
-    env.ANTHROPIC_MODEL = model;
-    env.ANTHROPIC_SMALL_FAST_MODEL = model;
+  // Determine models from CLI > ENV > Profile
+  if (explicitModel) {
+    env.ANTHROPIC_MODEL = explicitModel;
+  } else if (modelFromEnvOrProfile) {
+    env.ANTHROPIC_MODEL = modelFromEnvOrProfile;
+  }
+
+  if (explicitSmallFastModel) {
+    env.ANTHROPIC_SMALL_FAST_MODEL = explicitSmallFastModel;
+  } else if (smallFastFromEnvOrProfile) {
+    env.ANTHROPIC_SMALL_FAST_MODEL = smallFastFromEnvOrProfile;
+  } else if (env.ANTHROPIC_MODEL) {
+    // fallback to model if smallFastModel not set anywhere
+    env.ANTHROPIC_SMALL_FAST_MODEL = env.ANTHROPIC_MODEL;
   }
 
   // Display profile info if using one
