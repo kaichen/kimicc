@@ -188,12 +188,14 @@ async function handleProfileCommand() {
       }
     }
 
-    // If provider flag present and overrideBaseUrl not set, set default URL from provider
-    if (providerSlug && !overrideBaseUrl) {
+    // If provider flag present and overrideBaseUrl not set, set defaults from provider
+    if (providerSlug) {
       const p = getProviderBySlug(providerSlug);
-      if (p) overrideBaseUrl = p.baseUrl;
-      // Use default slug if user didn't provide one
+      if (!overrideBaseUrl && p) overrideBaseUrl = p.baseUrl;
+      // Default slug if not provided
       if (!slug) slug = providerSlug;
+      // Default model if not provided
+      if (!model && p && p.defaultModel) model = p.defaultModel;
     }
 
     // Derive url/authToken from remaining
@@ -524,7 +526,8 @@ async function main() {
         console.error('❌ No auth token provided. Exiting...');
         process.exit(1);
       }
-      addProfile(selectedProviderSlug, urlToUse, token, false, null);
+      const modelToUse = p && p.defaultModel ? p.defaultModel : null;
+      addProfile(selectedProviderSlug, urlToUse, token, false, modelToUse);
       console.log(`✅ Profile '${selectedProviderSlug}' created.`);
       profileName = selectedProviderSlug;
     }
