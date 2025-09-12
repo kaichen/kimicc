@@ -1,7 +1,7 @@
 {
   "name": "kimicc",
   "version": "2.0.0",
-  "description": "Run Claude Code with Kimi K2 API - 使用 Kimi K2 运行 Claude Code",
+  "description": "Run Claude Code with Kimi K2 API - 支持使用多种大模型驱动运行 Claude Code",
   "main": "index.js",
   "bin": {
     "kimicc": "./bin/cli.js"
@@ -14,6 +14,9 @@
     "claude",
     "claude-code",
     "kimi",
+    "deepseek",
+    "qwen",
+    "glm",
     "ai",
     "llm"
   ],
