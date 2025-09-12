@@ -1,6 +1,6 @@
 {
   "name": "kimicc",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Run Claude Code with Kimi K2 API - 支持使用多种大模型驱动运行 Claude Code",
   "main": "index.js",
   "bin": {
