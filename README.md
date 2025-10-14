@@ -35,9 +35,9 @@ Compared to other tutorials that require you to configure files or add long para
 ### Get API Key
 
 Here are the console addresses:
-- [Kimi](https://platform.moonshot.cn/console/api-keys)
-- [GLM/Zhipu](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) [Supports 20 yuan monthly subscription](https://www.bigmodel.cn/invite?icode=pQjcLR%2BsgpfrUDgDdpBX%2F5mwcr074zMJTpgMb8zZZvg%3D)
-- [Qwen/Alibaba Cloud Bailian](https://bailian.console.aliyun.com/?tab=globalset#/efm/api_key)
+- [Kimi/Moonshot](https://platform.moonshot.cn/console/api-keys)
+- [GLM/Zhipu](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) [Supports 60 RMB monthly subscription](https://www.bigmodel.cn/claude-code?ic=FHME2QL1XG)
+- [Qwen/AlibabaCloud](https://bailian.console.aliyun.com/?tab=globalset#/efm/api_key)
 - [DeepSeek](https://platform.deepseek.com/api_keys)
 
 ### Configuration and Startup

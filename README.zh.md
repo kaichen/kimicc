@@ -36,7 +36,7 @@ This is a lightweight Node.js npm package that sets up environment variables at 
 
 以下是控制台地址：
 - [Kimi](https://platform.moonshot.cn/console/api-keys)
-- [GLM/智谱](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) [支持 20 元包月](https://www.bigmodel.cn/invite?icode=pQjcLR%2BsgpfrUDgDdpBX%2F5mwcr074zMJTpgMb8zZZvg%3D)
+- [GLM/智谱](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) [支持 60 元包月](https://www.bigmodel.cn/claude-code?ic=FHME2QL1XG)
 - [Qwen/阿里云百炼](https://bailian.console.aliyun.com/?tab=globalset#/efm/api_key)
 - [DeepSeek](https://platform.deepseek.com/api_keys)
 
