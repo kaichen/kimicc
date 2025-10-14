@@ -2,94 +2,100 @@
 
 [![npm version](https://img.shields.io/npm/v/kimicc.svg)](https://www.npmjs.com/package/kimicc)
 
+[阅读中文说明](README.zh.md)
+
+One-step command `npx kimicc` to run Claude Code using Kimi K2 / GLM-4.6 / Qwen3-Coder / DeepSeek-v3.2.
+
 一步命令 `npx kimicc` 使用  Kimi K2 / GLM-4.5 / Qwen3-Coder / DeepSeek-v3.1 运行 Claude Code。
 
-或者 `npm install -g kimicc` 安装 KimiCC。
+Or install KimiCC with `npm install -g kimicc`.
 
-这是一个轻量的 nodejs 的 npm 包，在启动时设置好环境变量，让 Claude Code 调用  Kimi K2 / GLM-4.5 / Qwen3-Coder / DeepSeek-v3.1 模型。
+This is a lightweight Node.js npm package that sets up environment variables at startup, allowing Claude Code to call Kimi K2 / GLM-4.6 / Qwen3-Coder / DeepSeek-v3.2 models.
 
-## 为什么使用 Kimi K2 / GLM-4.5 / Qwen3-Coder / DeepSeek-v3.1 运行 Claude Code
+这是一个轻量的 nodejs 的 npm 包，在启动时设置好环境变量，让 Claude Code 调用  Kimi K2 / GLM-4.6 / Qwen3-Coder / DeepSeek-v3.2 模型。
 
-1. Claude 由于特殊原因难以稳定订阅，并且对一些地区进行技术封锁；
-2. Claude 订阅价格相对于发展中国家的广大群众难以负担以及支付；
-3. 不少大模型厂商都推出了兼容 anthropic 的接口；
-4. 当前好几家国产大模型都达到较高 Agentic 特性，足以驾驭 Claude Code 这个系统；
-5. API 没有网络问题，价格仅有 Claude 的 1/N，支持多种支付方式；
-6. 让更多人体验最先进的开发工具，让厂商卷起来。
-7. v2.0 新增：支持多个不同 API 同时运行，提升并发能力，比如可以同时让多个 Kimi 账号在本地并发。
+## Why use Kimi K2 / GLM-4.5 / Qwen3-Coder / DeepSeek-v3.1 to run Claude Code
 
-## 这个工具包做了什么？
+1. Due to special reasons, Claude is difficult to subscribe to stably and has technical restrictions on certain regions;
+2. Claude subscription prices are unaffordable and difficult to pay for the vast majority of people in developing countries;
+3. Many large model vendors have launched Anthropic-compatible interfaces;
+4. Several domestic Chinese large models have achieved high Agentic capabilities, sufficient to handle the Claude Code system;
+5. API has no network issues, costs only 1/N of Claude's price, supports multiple payment methods;
+6. Let more people experience the most advanced development tools and make vendors compete.
+7. v2.0 added: Support for running multiple different APIs simultaneously, improving concurrent capabilities, such as allowing multiple Kimi accounts to run concurrently locally.
 
-这个工具做一些微小的工作，帮你节省时间去处理配置的工作。底层是在启动 claude 之前设定好 Auth Token 和 Base URL 环境变量参数。
+## What does this tool package do?
 
-对比其他教程让你配置文件，或者在启动时加长长的参数，使用本工具会节省你宝贵的时间精力。
+This tool does some small work to save you time handling configuration tasks. At the bottom layer, it sets up Auth Token and Base URL environment variable parameters before starting claude.
 
-## 使用方式
+Compared to other tutorials that require you to configure files or add long parameters at startup, using this tool will save your valuable time and energy.
 
-### 获取 API Key
+## Usage
 
-以下是控制台地址：
+### Get API Key
+
+Here are the console addresses:
 - [Kimi](https://platform.moonshot.cn/console/api-keys)
-- [GLM/智谱](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) [支持 20 元包月](https://www.bigmodel.cn/invite?icode=pQjcLR%2BsgpfrUDgDdpBX%2F5mwcr074zMJTpgMb8zZZvg%3D)
-- [Qwen/阿里云百炼](https://bailian.console.aliyun.com/?tab=globalset#/efm/api_key)
+- [GLM/Zhipu](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) [Supports 20 yuan monthly subscription](https://www.bigmodel.cn/invite?icode=pQjcLR%2BsgpfrUDgDdpBX%2F5mwcr074zMJTpgMb8zZZvg%3D)
+- [Qwen/Alibaba Cloud Bailian](https://bailian.console.aliyun.com/?tab=globalset#/efm/api_key)
 - [DeepSeek](https://platform.deepseek.com/api_keys)
 
-### 配置与启动
+### Configuration and Startup
 
-- 第一步，获取 API Key
-- 第二步，在你本地有 Nodejs 环境的前提下，运行 `npx kimicc` 安装并启动，或者使用 `npm install -g kimicc`；
-- 第三步，在安装后可使用 kimicc 直接启动，并在提示下输入 Auth Token。
+- Step 1: Get API Key
+- Step 2: With Node.js environment on your local machine, run `npx kimicc` to install and start, or use `npm install -g kimicc`;
+- Step 3: After installation, you can use kimicc to start directly, and enter the Auth Token when prompted.
 
-首次初始化会提示你输入 Auth Token，下次就无需再次设置。
+First initialization will prompt you to enter Auth Token, no need to set it again next time.
 
-⚠️注意⚠️，启动时 Claude Code 会询问 AUTH TOKEN，默认是 NO(recommended），此时要选 YES。
+⚠️Note⚠️, when starting Claude Code will ask for AUTH TOKEN, default is NO(recommended), at this time select YES.
 
 Do you want to use this auth token? SELECT YES!!!
 
 ![screenshot](assets/screenshot.png)
 
-如何卸载： `npm uninstall kimicc`
+How to uninstall: `npm uninstall kimicc`
 
-完全卸载 claude code：`npm uninstall @anthropic-ai/claude-code`
+Completely uninstall claude code: `npm uninstall @anthropic-ai/claude-code`
 
-### 使用 Kimi 以外模型的方式
+### Using models other than Kimi
 
-默认什么参数都不添加，那么启动使用的是 kimi 模型的配置，若使用以下参数可以启动其他模型
+By default, if no parameters are added, it starts with the kimi model configuration. Using the following parameters can start other models
 
-- `--deepseek` 会设定 base_url=https://api.deepseek.com/anthropic model=deepseek-chat
-- `--glm` 会设定 base_url=https://open.bigmodel.cn/api/anthropic model=glm-4.5
-- `--qwen` 会设定 base_url=base_url=https://dashscope.aliyuncs.com/api/v2/apps/claude-code-proxy model=qwen3-coder-plus
+- `--deepseek` will set base_url=https://api.deepseek.com/anthropic model=deepseek-chat
+- `--glm` will set base_url=https://open.bigmodel.cn/api/anthropic model=glm-4.5
+- `--qwen` will set base_url=https://dashscope.aliyuncs.com/api/v2/apps/claude-code-proxy model=qwen3-coder-plus
 
-### 自定义大模型名称
+### Custom large model names
 
-启动或设定 Profile 时可以使用以下参数设定模型，
+When starting or setting Profile, you can use the following parameters to set models,
 
-- `--model` 用于指定主要的大模型型号。
-- `--small-fast-model` 用于指定辅助快速小模型，若没有指定则使用 `--model` 配置。
+- `--model` used to specify the main large model type.
+- `--small-fast-model` used to specify the auxiliary fast small model, if not specified then use `--model` configuration.
 
-这能让用户第一时间使用上大模型发布。即在 kimi 发布 kimi-k2-0905-preview 通过 `kimicc --model=kimi-k2-0905-preview` 使用最新模型。
+This allows users to use the latest large model releases immediately. For example, when kimi releases kimi-k2-0905-preview, use the latest model via `kimicc --model=kimi-k2-0905-preview`.
 
-### 附加命令功能
+### Additional command features
 
-- `kimicc reset` 重制配置。
-- `kimicc inject` 将配置写入 shell 配置中，后续可以用 claude 直接启动，无需再通过 kimicc。注意，可以用 `kimicc inject --reset` 删除写入的配置。
-- `kimicc profile` 支持配置多个不同服务提供商。
+- `kimicc reset` Reset configuration.
+- `kimicc inject` Write configuration into shell config, afterwards you can start directly with claude without going through kimicc. Note, you can use `kimicc inject --reset` to remove the injected configuration.
+- `kimicc profile` Support configuring multiple different service providers.
 
-## 版本记录
+## Version History
 
-- v1.x 基本功能实现
+- v1.x Basic functionality implementation
 - v2.x
-  - v2.0.0 支持 profile 功能，可分开启动多个配置
-  - v2.1.0 默认支持  Kimi K2 / GLM-4.5 / Qwen3-Coder / DeepSeek-v3.1
+  - v2.0.0 Support profile functionality, can start multiple configurations separately
+  - v2.1.0 Default support for Kimi K2 / GLM-4.5 / Qwen3-Coder / DeepSeek-v3.1
 
-## 已知问题
+## Known Issues
 
-- 本项目先在 Mac 上开发并测试，不保证 Linux 以及 Windows 系统运行，欢迎反馈问题以及提交 PR。
-- 由于 Kimi K2 不支持多模态，无法粘贴和读取图片。
-- Kimi 在不同充值档位对请求频率和每日请求量有限制，可能需要至少充值 50 元达到一档才能符合基本使用需求，具体查看[官方接口限速说明](https://platform.moonshot.cn/docs/pricing/limits)。
-- 由于这个工具只是修改环境变量，会让 kimicc 也写入 Claude 的数据目录，会共享 session 和数据统计数据，最新版本 v2.1.x 会写入对应模型调用，统计中会将不同模型分开显示。
+- This project was first developed and tested on Mac, no guarantee for Linux and Windows systems, welcome to report issues and submit PRs.
+- Due to Kimi K2 not supporting multimodal, cannot paste and read images.
+- Kimi has restrictions on request frequency and daily request volume at different recharge levels, may need to recharge at least 50 yuan to reach a level that meets basic usage needs, check [official interface rate limit description](https://platform.moonshot.cn/docs/pricing/limits).
+- Since this tool only modifies environment variables, it will make kimicc also write to Claude's data directory, sharing session and data statistics. The latest version v2.1.x will write corresponding model calls, and statistics will display different models separately.
 
-👏 欢迎遇到问题或想要更多功能提出 Issue。
+👏 Welcome to raise issues or request more features.
 
 ## License
 
