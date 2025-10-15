@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/kimicc.svg)](https://www.npmjs.com/package/kimicc)
 
-[阅读中文说明](README.zh.md)
+[Read Chinese Instructions](README.zh.md)
 
 One-step command `npx kimicc` to run Claude Code using Kimi K2 / GLM-4.6 / Qwen3-Coder / DeepSeek-v3.2.
 
@@ -63,7 +63,7 @@ Completely uninstall claude code: `npm uninstall @anthropic-ai/claude-code`
 By default, if no parameters are added, it starts with the kimi model configuration. Using the following parameters can start other models
 
 - `--deepseek` will set base_url=https://api.deepseek.com/anthropic model=deepseek-chat
-- `--glm` will set base_url=https://open.bigmodel.cn/api/anthropic model=glm-4.5
+- `--glm` will set base_url=https://open.bigmodel.cn/api/anthropic model=glm-4.6
 - `--qwen` will set base_url=https://dashscope.aliyuncs.com/api/v2/apps/claude-code-proxy model=qwen3-coder-plus
 
 ### Custom large model names
@@ -81,12 +81,37 @@ This allows users to use the latest large model releases immediately. For exampl
 - `kimicc inject` Write configuration into shell config, afterwards you can start directly with claude without going through kimicc. Note, you can use `kimicc inject --reset` to remove the injected configuration.
 - `kimicc profile` Support configuring multiple different service providers.
 
+## Under the hood
+
+Claude Code exposes some environment variables that can be used to configure model services, which are divided into three levels: haiku, sonnet, and opus.
+
+- ANTHROPIC_BASE_URL Large model service interface address (this variable is no longer documented in official docs and may be removed at any time to prevent third-party model usage)
+- ANTHROPIC_MODEL Fallback used when no detailed configuration below is provided
+- ANTHROPIC_DEFAULT_HAIKU_MODEL Lightweight tasks
+- ANTHROPIC_DEFAULT_SONNET_MODEL Main model
+- ANTHROPIC_DEFAULT_OPUS_MODEL Highest intelligence model, or used to drive Plan mode
+
+Note that ANTHROPIC_SMALL_FAST_MODEL has been deprecated.
+
+As long as the above environment variables are set during claude code runtime, the models it uses can be modified, of course the service interface also needs to be consistent with anthropic.
+
+There are several ways to modify environment variables:
+
+1. Directly before the startup command line, in the form of KEY=value placed before the command line;
+2. Write to the corresponding shell configuration file, such as bashrc, zshrc;
+3. Write to the "env" section in the claude.json configuration.
+
+Reference:
+- https://docs.claude.com/en/docs/claude-code/model-config#environment-variables
+- https://docs.claude.com/en/docs/claude-code/settings#environment-variables
+
 ## Version History
 
 - v1.x Basic functionality implementation
 - v2.x
   - v2.0.0 Support profile functionality, can start multiple configurations separately
   - v2.1.0 Default support for Kimi K2 / GLM-4.5 / Qwen3-Coder / DeepSeek-v3.1
+  - v2.1.1 update glm-4.6 config
 
 ## Known Issues
 

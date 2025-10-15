@@ -81,12 +81,37 @@ Do you want to use this auth token? SELECT YES!!!
 - `kimicc inject` 将配置写入 shell 配置中，后续可以用 claude 直接启动，无需再通过 kimicc。注意，可以用 `kimicc inject --reset` 删除写入的配置。
 - `kimicc profile` 支持配置多个不同服务提供商。
 
+## 实现原理
+
+Claude Code 暴露出一些环境变量可以用于配置模型服务，其中分为三个等级 haiku sonnet opus。
+
+- ANTHROPIC_BASE_URL 大模型服务接口地址（这个变量已经不写在官方文档中可能随时会被移除阻止第三方模型使用）
+- ANTHROPIC_MODEL 假如没有以下细致配置使用的 fallback
+- ANTHROPIC_DEFAULT_HAIKU_MODEL 轻量任务
+- ANTHROPIC_DEFAULT_SONNET_MODEL 主力模型
+- ANTHROPIC_DEFAULT_OPUS_MODEL 最高智能模型，或用于驱动 Plan 模式
+
+注意，其中 ANTHROPIC_SMALL_FAST_MODEL 已经被废弃。
+
+只要 claude code 运行时设定以上环境变量即可修改其使用的模型，当然也需要服务接口与 anthropic 保持一致。
+
+对于修改环境变量有好几种方式，
+
+1. 直接在启动命令行前，以 KEY=value 形式放在命令行之前即可；
+2. 写入到对应 shell 的配置文件，如 bashrc，zshrc；
+3. 写入到 claude.json 配置中的 "env" 下。
+
+参考文档
+- https://docs.claude.com/en/docs/claude-code/model-config#environment-variables
+- https://docs.claude.com/en/docs/claude-code/settings#environment-variables
+
 ## 版本记录
 
 - v1.x 基本功能实现
 - v2.x
   - v2.0.0 支持 profile 功能，可分开启动多个配置
   - v2.1.0 默认支持  Kimi K2 / GLM-4.5 / Qwen3-Coder / DeepSeek-v3.1
+  - v2.1.1 更新 glm-4.6 默认配置
 
 ## 已知问题
 

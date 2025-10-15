@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const readline = require('readline');
-const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, getSmallFastModel, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables, readConfig, getProfileConfig, addProfile, ensureDefaultProfileKimiDefaults } = require('../lib/utils');
+const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, getSmallFastModel, getOpusModel, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables, readConfig, getProfileConfig, addProfile, ensureDefaultProfileKimiDefaults } = require('../lib/utils');
 const { parseProviderFlag, getProviderBySlug } = require('../lib/providers');
 const { version } = require('../package.json');
 
@@ -581,7 +581,8 @@ async function main() {
         process.exit(1);
       }
       const modelToUse = p && p.defaultModel ? p.defaultModel : null;
-      addProfile(selectedProviderSlug, urlToUse, token, false, modelToUse);
+      const smallFastToUse = p && p.defaultSmallFastModel ? p.defaultSmallFastModel : null;
+      addProfile(selectedProviderSlug, urlToUse, token, false, modelToUse, smallFastToUse);
       console.log(`✅ Profile '${selectedProviderSlug}' created.`);
       profileName = selectedProviderSlug;
     }
@@ -625,9 +626,9 @@ async function main() {
   if (!baseUrl) {
     baseUrl = getBaseUrl(profileName);
   }
-  const modelFromEnvOrProfile = getModel(profileName);
-  const smallFastFromEnvOrProfile = getSmallFastModel(profileName);
-
+  const sonnetFromEnvOrProfile = getModel(profileName);
+  const haikuFromEnvOrProfile = getSmallFastModel(profileName);
+  const opusFromEnvOrProfile = getOpusModel(profileName);
 
   const env = {
     ...process.env,
@@ -637,20 +638,30 @@ async function main() {
   // Always use auth token mode
   env.ANTHROPIC_AUTH_TOKEN = authToken;
 
-  // Determine models from CLI > ENV > Profile
-  if (explicitModel) {
-    env.ANTHROPIC_MODEL = explicitModel;
-  } else if (modelFromEnvOrProfile) {
-    env.ANTHROPIC_MODEL = modelFromEnvOrProfile;
+  // Determine models from CLI > ENV > Profile and map to new Anthropic defaults
+  let resolvedSonnetModel = explicitModel || sonnetFromEnvOrProfile;
+  let resolvedHaikuModel = explicitSmallFastModel || haikuFromEnvOrProfile;
+  let resolvedOpusModel = opusFromEnvOrProfile;
+
+  if (!resolvedHaikuModel && resolvedSonnetModel) {
+    resolvedHaikuModel = resolvedSonnetModel;
   }
 
-  if (explicitSmallFastModel) {
-    env.ANTHROPIC_SMALL_FAST_MODEL = explicitSmallFastModel;
-  } else if (smallFastFromEnvOrProfile) {
-    env.ANTHROPIC_SMALL_FAST_MODEL = smallFastFromEnvOrProfile;
-  } else if (env.ANTHROPIC_MODEL) {
-    // fallback to model if smallFastModel not set anywhere
-    env.ANTHROPIC_SMALL_FAST_MODEL = env.ANTHROPIC_MODEL;
+  if (!resolvedOpusModel) {
+    resolvedOpusModel = resolvedSonnetModel || resolvedHaikuModel || null;
+  }
+
+  if (resolvedSonnetModel) {
+    env.ANTHROPIC_DEFAULT_SONNET_MODEL = resolvedSonnetModel;
+    env.ANTHROPIC_MODEL = explicitModel || env.ANTHROPIC_MODEL || resolvedSonnetModel;
+  }
+
+  if (resolvedHaikuModel) {
+    env.ANTHROPIC_DEFAULT_HAIKU_MODEL = resolvedHaikuModel;
+  }
+
+  if (resolvedOpusModel) {
+    env.ANTHROPIC_DEFAULT_OPUS_MODEL = resolvedOpusModel;
   }
 
   // Display profile info if using one
