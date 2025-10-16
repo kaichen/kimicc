@@ -5,25 +5,17 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const readline = require('readline');
-const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, getSmallFastModel, getOpusModel, updateClaudeSettings, readConfig, getProfileConfig, addProfile, ensureDefaultProfileKimiDefaults, updateClaudeEnvFile, resetClaudeEnvFile, CLAUDE_ENV_KEYS } = require('../lib/utils');
+const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, getSmallFastModel, getOpusModel, updateClaudeSettings, readConfig, getProfileConfig, addProfile, ensureDefaultProfileKimiDefaults, updateClaudeEnvFile, resetClaudeEnvFile, CLAUDE_ENV_KEYS, promptForPassword } = require('../lib/utils');
 const { parseProviderFlag, getProviderBySlug } = require('../lib/providers');
 const { version } = require('../package.json');
 
 const CONFIG_FILE = path.join(os.homedir(), '.kimicc.json');
 const CLAUDE_ENV_FILE = path.join(os.homedir(), '.claude', 'settings.json');
 
-function promptForTokenForProvider(providerName) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
+async function promptForTokenForProvider(providerName) {
   const name = providerName || 'provider';
-  return new Promise((resolve) => {
-    rl.question(`Enter API Auth Token for ${name}: `, (authToken) => {
-      rl.close();
-      resolve((authToken || '').trim());
-    });
-  });
+  const authToken = await promptForPassword(`Enter API Auth Token for ${name}: `);
+  return (authToken || '').trim();
 }
 
 async function handleResetCommand() {
