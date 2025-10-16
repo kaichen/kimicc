@@ -7,7 +7,7 @@ Here’s how the claude code package check and install works: When you start, it
 
 For the Auth Token: On startup, it looks for KIMI_AUTH_TOKEN first. If missing, it'll prompt you interactively to enter your kimi auth token, which it then saves to ~/.kimicc.json.
 
-Next, you need to update the Claude settings by checking the ~/.claude.json file. Change the value of autoUpdates to false (add this key if it’s not there), and set hasCompletedOnboarding to true (add this key if it’s missing).
+Next, you need to update the Claude settings by checking the ~/.claude/settings.json file. Change the value of autoUpdates to false (add this key if it’s not there), and set hasCompletedOnboarding to true (add this key if it’s missing).
 
 Before launching, it sets up environment variables: it assigns ANTHROPIC_AUTH_TOKEN (from the method above) and ANTHROPIC_BASE_URL=https://api.moonshot.ai/anthropic, then starts the claude process.
 

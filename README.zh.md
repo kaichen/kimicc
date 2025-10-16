@@ -78,7 +78,8 @@ Do you want to use this auth token? SELECT YES!!!
 ### 附加命令功能
 
 - `kimicc reset` 重制配置。
-- `kimicc inject` 将配置写入 shell 配置中，后续可以用 claude 直接启动，无需再通过 kimicc。注意，可以用 `kimicc inject --reset` 删除写入的配置。
+- `kimicc inject` 将 Anthropic 环境变量写入 `~/.claude/settings.json` 的 `env` 字段，这样可以直接运行 `claude`。可搭配 `--profile`、`--base-url`、`--model`、`--small-fast-model` 覆盖写入的值。
+- `kimicc inject --reset` 从 `~/.claude/settings.json` 中移除受管环境变量（`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL`、`ANTHROPIC_MODEL`、`ANTHROPIC_SMALL_FAST_MODEL`）。
 - `kimicc profile` 支持配置多个不同服务提供商。
 
 ## 实现原理
@@ -99,7 +100,7 @@ Claude Code 暴露出一些环境变量可以用于配置模型服务，其中�
 
 1. 直接在启动命令行前，以 KEY=value 形式放在命令行之前即可；
 2. 写入到对应 shell 的配置文件，如 bashrc，zshrc；
-3. 写入到 claude.json 配置中的 "env" 下。
+3. 写入到 `.claude/settings.json` 配置中的 "env" 下。
 
 参考文档
 - https://docs.claude.com/en/docs/claude-code/model-config#environment-variables

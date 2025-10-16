@@ -78,7 +78,8 @@ This allows users to use the latest large model releases immediately. For exampl
 ### Additional command features
 
 - `kimicc reset` Reset configuration.
-- `kimicc inject` Write configuration into shell config, afterwards you can start directly with claude without going through kimicc. Note, you can use `kimicc inject --reset` to remove the injected configuration.
+- `kimicc inject` Persist Anthropic environment variables into `~/.claude/settings.json` (`env` block) so `claude` picks them up without running `kimicc`. Use `--profile`, `--base-url`, `--model`, or `--small-fast-model` to override values for the saved env.
+- `kimicc inject --reset` Remove the managed environment keys (`ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL`, `ANTHROPIC_SMALL_FAST_MODEL`) from `~/.claude/settings.json`.
 - `kimicc profile` Support configuring multiple different service providers.
 
 ## Under the hood
@@ -99,7 +100,7 @@ There are several ways to modify environment variables:
 
 1. Directly before the startup command line, in the form of KEY=value placed before the command line;
 2. Write to the corresponding shell configuration file, such as bashrc, zshrc;
-3. Write to the "env" section in the claude.json configuration.
+3. Write to the "env" section in the `.claude/settings.json` configuration.
 
 Reference:
 - https://docs.claude.com/en/docs/claude-code/model-config#environment-variables

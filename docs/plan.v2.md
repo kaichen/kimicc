@@ -6,21 +6,13 @@
 
 DONE: PR#3
 
-## feature#2 inject environment to shell config
+## feature#2 inject managed env into `.claude/settings.json`
 
 添加 inject 子命令，实现以下能力：
 
-假如仅使用单一版本 kimi k2 版本，则可以设置到 shell（如根据情况写入 export env key 到 .bashrc 或 .zshrc）。这样 claude code 默认启动就采用设定的 ANTHROPIC_AUTH_TOKEN 与 ANTHROPIC_BASE_URL，方便其他程序调用。
-
-zsh用户：
-echo 'export ANTHROPIC_BASE_URL="https://api.moonshot.cn/anthropic"' >> ~/.zshrc
-echo 'export ANTHROPIC_AUTH_TOKEN="你的实际API密钥"' >> ~/.zshrc
-source ~/.zshrc
-
-bash用户：
-echo 'export ANTHROPIC_BASE_URL="https://api.moonshot.cn/anthropic"' >> ~/.bashrc
-echo 'export ANTHROPIC_AUTH_TOKEN="你的实际API密钥"' >> ~/.bashrc
-source ~/.bashrc
+- 将 `ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL`、`ANTHROPIC_MODEL`、`ANTHROPIC_SMALL_FAST_MODEL` 写入 `~/.claude/settings.json` 的 `env` 字段，方便 `claude` CLI 直接读取。
+- 支持 `--profile`、`--base-url`、`--model`、`--small-fast-model` 覆盖写入值，并且优先级与运行时保持一致（环境变量 > profile > 默认值）。
+- 提供 `kimicc inject --reset` 从 `~/.claude/settings.json` 中移除上述受管键，不影响其他字段。
 
 ## feature#3 multi profiles
 

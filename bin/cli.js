@@ -5,11 +5,12 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const readline = require('readline');
-const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, getSmallFastModel, getOpusModel, updateClaudeSettings, detectShellType, injectEnvVariables, removeEnvVariables, readConfig, getProfileConfig, addProfile, ensureDefaultProfileKimiDefaults } = require('../lib/utils');
+const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, getSmallFastModel, getOpusModel, updateClaudeSettings, readConfig, getProfileConfig, addProfile, ensureDefaultProfileKimiDefaults, updateClaudeEnvFile, resetClaudeEnvFile, CLAUDE_ENV_KEYS } = require('../lib/utils');
 const { parseProviderFlag, getProviderBySlug } = require('../lib/providers');
 const { version } = require('../package.json');
 
 const CONFIG_FILE = path.join(os.homedir(), '.kimicc.json');
+const CLAUDE_ENV_FILE = path.join(os.homedir(), '.claude', 'settings.json');
 
 function promptForTokenForProvider(providerName) {
   const rl = readline.createInterface({
@@ -58,54 +59,167 @@ async function handleResetCommand() {
 }
 
 async function handleInjectCommand() {
-  // Parse inject command arguments
   const args = process.argv.slice(2);
-  const injectArgs = args.slice(1); // Skip the 'inject' command itself
-  
-  const force = injectArgs.includes('--force') || injectArgs.includes('-f');
-  const reset = injectArgs.includes('--reset') || injectArgs.includes('-r');
-  
+  const injectArgs = args.slice(1);
+
+  let reset = false;
+  let profileName = null;
+  let baseUrlOverride = null;
+  let modelOverride = null;
+  let smallFastOverride = null;
+  let legacyForceFlag = false;
+  const unexpectedArgs = [];
+
+  for (let i = 0; i < injectArgs.length; i++) {
+    const token = injectArgs[i];
+    if (!token) continue;
+
+    if (token === '--reset' || token === '-r') {
+      reset = true;
+      continue;
+    }
+    if (token === '--profile') {
+      if (i + 1 >= injectArgs.length) {
+        console.error('❌ Missing value for --profile');
+        process.exit(1);
+      }
+      profileName = injectArgs[++i];
+      continue;
+    }
+    if (token.startsWith('--profile=')) {
+      profileName = token.slice('--profile='.length);
+      continue;
+    }
+    if (token === '--base-url') {
+      if (i + 1 >= injectArgs.length) {
+        console.error('❌ Missing value for --base-url');
+        process.exit(1);
+      }
+      baseUrlOverride = injectArgs[++i];
+      continue;
+    }
+    if (token.startsWith('--base-url=')) {
+      baseUrlOverride = token.split('=').slice(1).join('=');
+      continue;
+    }
+    if (typeof token === 'string') {
+      const baseUrlMatch = token.match(/^base_url=(.+)$/i);
+      if (baseUrlMatch) {
+        baseUrlOverride = baseUrlMatch[1];
+        continue;
+      }
+    }
+    if (token === '--model') {
+      if (i + 1 >= injectArgs.length) {
+        console.error('❌ Missing value for --model');
+        process.exit(1);
+      }
+      modelOverride = injectArgs[++i];
+      continue;
+    }
+    if (token.startsWith('--model=')) {
+      modelOverride = token.split('=').slice(1).join('=');
+      continue;
+    }
+    if (token === '--small-fast-model') {
+      if (i + 1 >= injectArgs.length) {
+        console.error('❌ Missing value for --small-fast-model');
+        process.exit(1);
+      }
+      smallFastOverride = injectArgs[++i];
+      continue;
+    }
+    if (token.startsWith('--small-fast-model=')) {
+      smallFastOverride = token.split('=').slice(1).join('=');
+      continue;
+    }
+    if (token === '--force' || token === '-f') {
+      legacyForceFlag = true;
+      continue;
+    }
+    if (token === '--help' || token === '-h') {
+      console.log('Usage: kimicc inject [--profile SLUG] [--base-url URL|base_url=URL] [--model NAME] [--small-fast-model NAME] [--reset]');
+      return;
+    }
+    unexpectedArgs.push(token);
+  }
+
+  if (unexpectedArgs.length > 0) {
+    console.error(`❌ Unknown arguments for inject command: ${unexpectedArgs.join(', ')}`);
+    process.exit(1);
+  }
+
+  if (legacyForceFlag) {
+    console.log('ℹ️  --force is deprecated for inject and will be ignored.');
+  }
+
   if (reset) {
-    console.log('🗑️  Removing KimiCC environment variables from shell config...\n');
-    
-    // Detect shell type
-    const shellType = detectShellType();
-    console.log(`📋 Detected shell: ${shellType}`);
-    
+    if (profileName || baseUrlOverride || modelOverride || smallFastOverride) {
+      console.log('ℹ️  --reset ignores profile/model/base-url overrides. Managed keys are global.');
+    }
+    console.log('🧹 Removing managed Claude environment variables...\n');
+    console.log(`Managed keys: ${CLAUDE_ENV_KEYS.join(', ')}`);
     try {
-      const removed = await removeEnvVariables(shellType, force);
-      if (!removed) {
-        console.log('Removal cancelled or no variables found.');
-        return;
+      const result = resetClaudeEnvFile();
+      if (result.removedKeys.length > 0) {
+        console.log(`✅ Removed ${result.removedKeys.join(', ')} from ${CLAUDE_ENV_FILE}.`);
+      } else {
+        console.log(`ℹ️  No managed keys found in ${CLAUDE_ENV_FILE}.`);
       }
     } catch (error) {
-      console.error('❌ Failed to remove environment variables:', error.message);
+      console.error(`❌ Failed to reset managed keys: ${error.message}`);
       process.exit(1);
     }
     return;
   }
-  
-  console.log('💉 Injecting KimiCC environment variables into shell config...\n');
-  
-  // Get auth token first
-  const authToken = await getAuthToken();
+
+  const config = readConfig();
+  const selectedProfile = profileName ? getProfileConfig(config, profileName) : null;
+  if (profileName && !selectedProfile) {
+    console.error(`❌ Profile '${profileName}' not found.`);
+    process.exit(1);
+  }
+
+  const authToken = await getAuthToken(profileName);
   if (!authToken) {
     console.error('❌ No auth token provided. Cannot inject environment variables.');
     return;
   }
-  
-  // Detect shell type
-  const shellType = detectShellType();
-  console.log(`📋 Detected shell: ${shellType}`);
-  
+
+  const baseUrl = baseUrlOverride || getBaseUrl(profileName);
+  if (profileName && baseUrlOverride && selectedProfile && selectedProfile.url && selectedProfile.url !== baseUrlOverride) {
+    console.log(`⚠️  Using --base-url over profile "${profileName}" url "${selectedProfile.url}".`);
+  }
+
+  const model = modelOverride || getModel(profileName);
+  const smallFastModel = smallFastOverride || getSmallFastModel(profileName, { fallbackToModel: false });
+
+  console.log('💉 Injecting managed environment variables into ~/.claude/settings.json...\n');
+  console.log(`Managed keys: ${CLAUDE_ENV_KEYS.join(', ')}`);
+
+  const envUpdates = {
+    ANTHROPIC_AUTH_TOKEN: authToken,
+    ANTHROPIC_BASE_URL: baseUrl,
+    ANTHROPIC_MODEL: model || undefined,
+    ANTHROPIC_SMALL_FAST_MODEL: smallFastModel || undefined
+  };
+
   try {
-    const proceed = await injectEnvVariables(authToken, shellType, force);
-    if (proceed === false) {
-      console.log('Injection cancelled by user.');
-      return;
+    const result = updateClaudeEnvFile(envUpdates);
+    if (result.changed) {
+      const changeParts = [];
+      if (result.appliedKeys.length > 0) {
+        changeParts.push(`set ${result.appliedKeys.join(', ')}`);
+      }
+      if (result.removedKeys.length > 0) {
+        changeParts.push(`removed ${result.removedKeys.join(', ')}`);
+      }
+      console.log(`✅ Updated ${CLAUDE_ENV_FILE}${changeParts.length ? ` (${changeParts.join('; ')})` : ''}.`);
+    } else {
+      console.log(`ℹ️  ${CLAUDE_ENV_FILE} already up to date.`);
     }
   } catch (error) {
-    console.error('❌ Failed to inject environment variables:', error.message);
+    console.error(`❌ Failed to update ${CLAUDE_ENV_FILE}: ${error.message}`);
     process.exit(1);
   }
 }

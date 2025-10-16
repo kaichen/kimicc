@@ -48,8 +48,8 @@ npm install -g @anthropic-ai/claude-code
 - `kimicc --model <name>` - Override model for this run
 - `kimicc --small-fast-model <name>` - Override small/fast model for this run
 - `kimicc reset` - Delete the configuration file
-- `kimicc inject` - Inject environment variables into shell config
-- `kimicc inject --reset` - Remove injected variables from shell config
+- `kimicc inject` - Persist managed Anthropic environment variables into `~/.claude/settings.json` (`env` section)
+- `kimicc inject --reset` - Remove managed Anthropic environment variables from `~/.claude/settings.json`
 
 ### Profile Management
 - `kimicc profile list` - List all profiles
@@ -85,7 +85,7 @@ npm unlink
 - Test auth token management flow by removing ~/.kimicc.json
 - Test Claude installation detection by checking PATH
 - Test profile switching and management commands
-- Test shell injection with different shell types (bash, zsh, fish)
+- Test `.claude/settings.json` env merge/reset behaviour with different flag combinations
 
 ## Configuration File Format
 
