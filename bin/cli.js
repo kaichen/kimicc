@@ -7,6 +7,7 @@ const os = require('os');
 const readline = require('readline');
 const { checkClaudeInPath, installClaudeCode, getAuthToken, getBaseUrl, getModel, getSmallFastModel, getOpusModel, updateClaudeSettings, readConfig, getProfileConfig, addProfile, ensureDefaultProfileKimiDefaults, updateClaudeEnvFile, resetClaudeEnvFile, CLAUDE_ENV_KEYS } = require('../lib/utils');
 const { parseProviderFlag, getProviderBySlug } = require('../lib/providers');
+const { runPingSuite, DEFAULT_TIMEOUT_MS } = require('../lib/ping');
 const { version } = require('../package.json');
 
 const CONFIG_FILE = path.join(os.homedir(), '.kimicc.json');
@@ -221,6 +222,274 @@ async function handleInjectCommand() {
   } catch (error) {
     console.error(`❌ Failed to update ${CLAUDE_ENV_FILE}: ${error.message}`);
     process.exit(1);
+  }
+}
+
+async function handlePingCommand() {
+  const rawArgs = process.argv.slice(2);
+  const args = rawArgs.slice(1); // Skip 'ping'
+
+  let providerSlug = null;
+  const providerFlag = parseProviderFlag(args);
+  if (providerFlag) {
+    providerSlug = providerFlag.slug;
+    args.splice(providerFlag.index, 1);
+  }
+
+  let baseUrlOverride = null;
+  let modelOverride = null;
+  let smallFastOverride = null;
+  let profileName = null;
+  let timeoutMs = DEFAULT_TIMEOUT_MS;
+  let jsonOutput = false;
+  let verbose = false;
+
+  const queue = [...args];
+  const unexpected = [];
+
+  while (queue.length > 0) {
+    const token = queue.shift();
+    if (!token) continue;
+
+    if (token === '--help' || token === '-h') {
+      console.log('Usage: kimicc ping [--profile SLUG] [--kimi|--deepseek|--glm|--qwen] [--base-url URL|base_url=URL] [--model NAME] [--small-fast-model NAME] [--timeout MS] [--json] [--verbose]');
+      return;
+    }
+
+    if (typeof token === 'string') {
+      const baseUrlMatch = token.match(/^base_url=(.+)$/i);
+      if (baseUrlMatch) {
+        baseUrlOverride = baseUrlMatch[1];
+        continue;
+      }
+    }
+
+    if (token === '--base-url') {
+      const next = queue.shift();
+      if (!next) {
+        console.error('❌ Missing value for --base-url');
+        process.exit(1);
+      }
+      baseUrlOverride = next;
+      continue;
+    }
+    if (token.startsWith('--base-url=')) {
+      baseUrlOverride = token.split('=').slice(1).join('=');
+      continue;
+    }
+
+    if (token === '--model') {
+      const next = queue.shift();
+      if (!next) {
+        console.error('❌ Missing value for --model');
+        process.exit(1);
+      }
+      modelOverride = next;
+      continue;
+    }
+    if (token.startsWith('--model=')) {
+      modelOverride = token.split('=').slice(1).join('=');
+      continue;
+    }
+
+    if (token === '--small-fast-model') {
+      const next = queue.shift();
+      if (!next) {
+        console.error('❌ Missing value for --small-fast-model');
+        process.exit(1);
+      }
+      smallFastOverride = next;
+      continue;
+    }
+    if (token.startsWith('--small-fast-model=')) {
+      smallFastOverride = token.split('=').slice(1).join('=');
+      continue;
+    }
+
+    if (token === '--profile' || token === '-p') {
+      const next = queue.shift();
+      if (!next) {
+        console.error('❌ Missing value for --profile');
+        process.exit(1);
+      }
+      profileName = next;
+      continue;
+    }
+    if (token.startsWith('--profile=')) {
+      profileName = token.split('=').slice(1).join('=');
+      continue;
+    }
+
+    if (token === '--timeout') {
+      const next = queue.shift();
+      if (!next) {
+        console.error('❌ Missing value for --timeout');
+        process.exit(1);
+      }
+      const parsed = parseInt(next, 10);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        console.error('❌ Timeout must be a positive integer (milliseconds).');
+        process.exit(1);
+      }
+      timeoutMs = parsed;
+      continue;
+    }
+    if (token.startsWith('--timeout=')) {
+      const value = token.split('=').slice(1).join('=');
+      const parsed = parseInt(value, 10);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        console.error('❌ Timeout must be a positive integer (milliseconds).');
+        process.exit(1);
+      }
+      timeoutMs = parsed;
+      continue;
+    }
+
+    if (token === '--json') {
+      jsonOutput = true;
+      continue;
+    }
+
+    if (token === '--verbose') {
+      verbose = true;
+      continue;
+    }
+
+    if (token.startsWith('--')) {
+      const providerCandidate = token.slice(2);
+      const provider = getProviderBySlug(providerCandidate);
+      if (provider) {
+        if (!providerSlug) {
+          providerSlug = provider.slug;
+        }
+        continue;
+      }
+    }
+
+    unexpected.push(token);
+  }
+
+  if (unexpected.length > 0) {
+    console.error(`❌ Unknown arguments for ping command: ${unexpected.join(', ')}`);
+    process.exit(1);
+  }
+
+  if (jsonOutput && verbose) {
+    console.error('⚠️  --verbose is ignored when --json is specified.');
+    verbose = false;
+  }
+
+  try { ensureDefaultProfileKimiDefaults(); } catch {}
+
+  if (providerSlug && profileName) {
+    console.log(`⚠️  Both --profile and provider flag specified; using provider '--${providerSlug}'.`);
+    profileName = null;
+  }
+
+  if (providerSlug) {
+    const config = readConfig();
+    const existing = config.profiles && config.profiles[providerSlug];
+    if (existing) {
+      profileName = providerSlug;
+    } else {
+      const provider = getProviderBySlug(providerSlug);
+      const urlToUse = baseUrlOverride || (provider && provider.baseUrl) || 'https://api.moonshot.cn/anthropic';
+      try {
+        new URL(urlToUse);
+      } catch (error) {
+        console.error('❌ Invalid base URL. Provide a valid URL via --base-url or base_url=.');
+        process.exit(1);
+      }
+      const token = await promptForTokenForProvider(provider ? provider.name : providerSlug);
+      if (!token) {
+        console.error('❌ No auth token provided. Exiting...');
+        process.exit(1);
+      }
+      const modelToUse = provider && provider.defaultModel ? provider.defaultModel : null;
+      const smallFastToUse = provider && provider.defaultSmallFastModel ? provider.defaultSmallFastModel : (modelToUse || null);
+      addProfile(providerSlug, urlToUse, token, false, modelToUse, smallFastToUse);
+      console.log(`✅ Profile '${providerSlug}' created.`);
+      profileName = providerSlug;
+    }
+  }
+
+  const authToken = await getAuthToken(profileName);
+  if (!authToken) {
+    console.error('❌ No auth token available. Exiting...');
+    process.exit(1);
+  }
+
+  let baseUrl = baseUrlOverride || getBaseUrl(profileName);
+  if (!baseUrl) {
+    baseUrl = 'https://api.moonshot.cn/anthropic';
+  }
+
+  const modelFromConfig = getModel(profileName);
+  const smallFastFromConfig = getSmallFastModel(profileName);
+  const opusFromConfig = getOpusModel(profileName);
+
+  let resolvedModel = modelOverride || modelFromConfig;
+  let resolvedSmallFastModel = smallFastOverride || smallFastFromConfig;
+  if (!resolvedSmallFastModel && resolvedModel) {
+    resolvedSmallFastModel = resolvedModel;
+  }
+  const resolvedOpusModel = opusFromConfig;
+
+  const models = Array.from(new Set([resolvedModel, resolvedSmallFastModel, resolvedOpusModel].filter(Boolean)));
+  if (models.length === 0) {
+    console.error('❌ No model configuration found. Provide --model or configure models in your profile.');
+    process.exit(1);
+  }
+
+  if (!jsonOutput) {
+    console.log('📡 Running kimicc ping...\n');
+    console.log(`Base URL: ${baseUrl}`);
+    if (profileName) {
+      console.log(`Profile: ${profileName}`);
+    } else if (providerSlug) {
+      console.log(`Provider: ${providerSlug}`);
+    }
+    console.log(`Timeout: ${timeoutMs} ms`);
+    console.log(`Models (${models.length}): ${models.join(', ')}`);
+    console.log('');
+  }
+
+  let suite;
+  try {
+    suite = await runPingSuite({
+      baseUrl,
+      token: authToken,
+      models,
+      timeoutMs,
+      verbose
+    });
+  } catch (error) {
+    console.error(`❌ Ping failed: ${error.message}`);
+    process.exit(1);
+  }
+
+  if (jsonOutput) {
+    const payload = {
+      baseUrl,
+      profile: profileName || null,
+      provider: providerSlug || null,
+      timeoutMs,
+      ok: suite.ok,
+      models: suite.results
+    };
+    console.log(JSON.stringify(payload, null, 2));
+  } else {
+    suite.results.forEach((result) => {
+      const icon = result.ok ? '✅' : '❌';
+      const statusLabel = result.status !== null && result.status !== undefined ? result.status : 'ERR';
+      const latencyLabel = Number.isFinite(result.latencyMs) ? `${result.latencyMs} ms` : '—';
+      const errorLabel = result.error ? ` - ${result.error}` : '';
+      console.log(`  ${icon} ${result.model} (${statusLabel}, ${latencyLabel})${errorLabel}`);
+    });
+  }
+
+  if (!suite.ok) {
+    process.exitCode = 1;
   }
 }
 
@@ -584,7 +853,12 @@ async function main() {
     await handleInjectCommand();
     return;
   }
-  
+
+  if (args[0] === 'ping') {
+    await handlePingCommand();
+    return;
+  }
+
   if (args[0] === 'profile') {
     await handleProfileCommand();
     return;

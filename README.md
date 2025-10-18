@@ -80,6 +80,7 @@ This allows users to use the latest large model releases immediately. For exampl
 - `kimicc reset` Reset configuration.
 - `kimicc inject` Persist Anthropic environment variables into `~/.claude/settings.json` (`env` block) so `claude` picks them up without running `kimicc`. Use `--profile`, `--base-url`, `--model`, or `--small-fast-model` to override values for the saved env.
 - `kimicc inject --reset` Remove the managed environment keys (`ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL`, `ANTHROPIC_SMALL_FAST_MODEL`) from `~/.claude/settings.json`.
+- `kimicc ping [options]` Send a minimal `/v1/messages` probe against each configured model to verify connectivity. Supports `--profile`, provider quick flags, `--model`, `--small-fast-model`, `--timeout`, `--json`, and `--verbose`.
 - `kimicc profile` Support configuring multiple different service providers.
 
 ## Under the hood

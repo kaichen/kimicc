@@ -80,6 +80,7 @@ Do you want to use this auth token? SELECT YES!!!
 - `kimicc reset` 重制配置。
 - `kimicc inject` 将 Anthropic 环境变量写入 `~/.claude/settings.json` 的 `env` 字段，这样可以直接运行 `claude`。可搭配 `--profile`、`--base-url`、`--model`、`--small-fast-model` 覆盖写入的值。
 - `kimicc inject --reset` 从 `~/.claude/settings.json` 中移除受管环境变量（`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL`、`ANTHROPIC_MODEL`、`ANTHROPIC_SMALL_FAST_MODEL`）。
+- `kimicc ping [选项]` 对每个已配置模型发起 `/v1/messages` 最小探测请求，确认当前令牌与 Base URL 可用。支持 `--profile`、快速提供商参数、`--model`、`--small-fast-model`、`--timeout`、`--json`、`--verbose`。
 - `kimicc profile` 支持配置多个不同服务提供商。
 
 ## 实现原理
